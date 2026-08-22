@@ -22,3 +22,7 @@ node_modules/
 *.tmp
 *~
 .DS_Store
+
+# Export output. The Windows preset writes GAME/NewIK.exe here.
+# Builds are reproducible from source and do not belong in history.
+/GAME/

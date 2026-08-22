@@ -10,6 +10,9 @@ Target feel: DayZ / Escape from Tarkov / Ready or Not / Ground Branch.
 > asset from Brok3ncircuit (brokencircuit.itch.io). Its source and assets are in
 > this history and are not mine to redistribute.
 
+**Machines:** ThinkPad (Pop!_OS) and desktop (Windows). GitHub holds the
+authoritative copy; both are working copies of it.
+
 ---
 
 ## Requirements
@@ -18,24 +21,25 @@ Target feel: DayZ / Escape from Tarkov / Ready or Not / Ground Branch.
 |---|---|---|
 | Godot | **4.6.2 stable**, forward_plus | the project |
 | Node.js | **22.x** | the `godot_mcp` dev addon only — not the game |
+| Git | any recent | on Windows, install **Git for Windows** |
 
 The game itself has no Node dependency. Node is only there so the MCP editor
 bridge works.
 
 ---
 
-## First-time setup on a new machine
+# Setup — Linux
 
-### 1. Give the machine an SSH key GitHub trusts
+### 1. SSH key
 
-Each machine gets its own key. Do this once per machine.
+Each machine gets its own key. Never copy a private key between machines.
 
 ```bash
-ssh-keygen -t ed25519 -C "frashersebastian@gmail.com ($(hostname))" -f ~/.ssh/id_ed25519
+ssh-keygen -t ed25519 -C "$(hostname)" -f ~/.ssh/id_ed25519
 cat ~/.ssh/id_ed25519.pub
 ```
 
-Paste that public key at <https://github.com/settings/ssh/new>, then verify:
+Paste the public key at <https://github.com/settings/ssh/new>, then verify:
 
 ```bash
 ssh -T git@github.com      # expect: "Hi SFrasher! You've successfully authenticated..."
@@ -48,13 +52,7 @@ git clone git@github.com:SFrasher/BodyFPSController.git
 cd BodyFPSController
 ```
 
-Clone **once** per machine. After that it's `pull` and `push` — cloning again
-throws away whatever hasn't been pushed.
-
-### 3. Install the MCP addon's Node dependencies
-
-`node_modules/` is gitignored (~125 MB, and it's reinstallable), so a fresh
-clone won't have it. The addon won't connect until you do this:
+### 3. MCP addon dependencies
 
 ```bash
 cd addons/godot_mcp/server
@@ -62,24 +60,17 @@ npm install
 cd ../../..
 ```
 
-`build/` **is** committed, so there's no TypeScript build step — `npm install`
-is enough.
-
 ### 4. Open in Godot
 
-First open regenerates `.godot/` (import caches, shader caches). It takes a
-minute or two and churns the disk. That directory is gitignored on purpose —
-it's machine-specific and would conflict constantly if shared.
+First open regenerates `.godot/`. Takes a minute or two.
 
-### 5. Optional — point VS Code at your Godot binary
+### 5. Optional — VS Code
 
-`.vscode/settings.json` is deliberately **untracked**, because it stores an
-absolute path to the Godot executable that is different on every machine.
-Create your own:
+Create `.vscode/settings.json` (untracked by design):
 
 ```json
 {
-    "godotTools.editorPath.godot4": "/your/path/to/Godot_v4.6-stable_linux.x86_64",
+    "godotTools.editorPath.godot4": "/your/path/to/Godot_v4.6.2-stable_linux.x86_64",
     "editor.tabSize": 4,
     "editor.insertSpaces": false,
     "files.eol": "\n",
@@ -87,13 +78,9 @@ Create your own:
 }
 ```
 
-`.vscode/extensions.json` **is** tracked — the recommended extensions are the
-same everywhere.
+### 6. Optional — Claude MCP bridge
 
-### 6. Optional — wire up the Claude MCP bridge
-
-Lives outside the repo, in `~/.config/Claude/claude_desktop_config.json`. Paths
-are absolute, so they differ per machine:
+`~/.config/Claude/claude_desktop_config.json`:
 
 ```json
 "godot-mcp-pro": {
@@ -104,10 +91,132 @@ are absolute, so they differ per machine:
 
 ---
 
-## Working across two machines
+# Setup — Windows
 
-GitHub holds the authoritative copy. The laptop and the desktop are both just
-working copies of it.
+### 0. Install the tooling
+
+| | Where | Notes |
+|---|---|---|
+| Git for Windows | <https://git-scm.com/download/win> | Ships Git Bash **and** the `ssh-keygen` you need |
+| Node.js 22.x | <https://nodejs.org> or [nvm-windows](https://github.com/coreybutler/nvm-windows) | nvm-windows if you want to juggle versions |
+| Godot 4.6.2 | <https://godotengine.org/download/windows/> | Grab `Godot_v4.6.2-stable_win64.exe` — the **standard** build, not .NET |
+
+The commands below work in **PowerShell** (Windows 10/11 ship OpenSSH) or in
+**Git Bash**. Git Bash lets you use the Linux commands above verbatim, which is
+often the path of least resistance.
+
+### 1. SSH key
+
+PowerShell:
+
+```powershell
+ssh-keygen -t ed25519 -C "$env:COMPUTERNAME" -f "$env:USERPROFILE\.ssh\id_ed25519"
+Get-Content "$env:USERPROFILE\.ssh\id_ed25519.pub"
+```
+
+Paste the public key at <https://github.com/settings/ssh/new>. Give it a
+different title than the laptop's key — `Desktop (Windows)`. Then verify:
+
+```powershell
+ssh -T git@github.com      # expect: "Hi SFrasher! You've successfully authenticated..."
+```
+
+**Generate a fresh key here.** Do not copy `id_ed25519` over from the ThinkPad.
+Separate keys mean losing one machine doesn't mean revoking both.
+
+### 2. Clone
+
+```powershell
+cd $env:USERPROFILE\Documents
+git clone git@github.com:SFrasher/BodyFPSController.git
+cd BodyFPSController
+```
+
+Avoid cloning into a OneDrive-synced folder. OneDrive and Godot's `.godot/`
+cache fight each other, and you'll get file-lock errors mid-import.
+
+### 3. MCP addon dependencies
+
+```powershell
+cd addons\godot_mcp\server
+npm install
+cd ..\..\..
+```
+
+### 4. Open in Godot
+
+Launch `Godot_v4.6.2-stable_win64.exe`, Import, point it at `project.godot`.
+First open regenerates `.godot/` — a minute or two of disk churn.
+
+If Windows Defender slows the import to a crawl, adding the project folder as
+an exclusion helps a lot.
+
+### 5. Optional — VS Code
+
+Create `.vscode/settings.json`. Backslashes must be **doubled** in JSON:
+
+```json
+{
+    "godotTools.editorPath.godot4": "C:\\Godot\\Godot_v4.6.2-stable_win64.exe",
+    "editor.tabSize": 4,
+    "editor.insertSpaces": false,
+    "files.eol": "\n",
+    "files.exclude": { "**/*.gd.uid": true }
+}
+```
+
+Forward slashes also work if you'd rather: `"C:/Godot/Godot_v4.6.2-stable_win64.exe"`.
+
+### 6. Optional — Claude MCP bridge
+
+Config lives at `%APPDATA%\Claude\claude_desktop_config.json`. Paste that path
+into Explorer's address bar to find it. Doubled backslashes again:
+
+```json
+"godot-mcp-pro": {
+  "command": "C:\\Program Files\\nodejs\\node.exe",
+  "args": ["C:\\Users\\<you>\\Documents\\BodyFPSController\\addons\\godot_mcp\\server\\build\\index.js"]
+}
+```
+
+Using nvm-windows, `command` is something like
+`C:\\Users\\<you>\\AppData\\Roaming\\nvm\\v22.23.2\\node.exe`. Find it with
+`where.exe node`.
+
+---
+
+## Two gotchas specific to running Linux + Windows on one repo
+
+### Line endings — already handled, don't fight it
+
+`.gitattributes` pins `* text=auto eol=lf`, so every text file is LF in the repo
+**and** LF in your working tree on Windows. This deliberately overrides
+`core.autocrlf`, whatever the Git for Windows installer set it to. Godot and VS
+Code both handle LF on Windows fine.
+
+If you ever see a diff where every single line changed, that's a line-ending
+problem — don't commit it, say something. It means something bypassed the
+attribute.
+
+### Filename case — Windows won't catch your mistakes
+
+Windows treats `res://Node/Player.tscn` and `res://node/player.tscn` as the same
+file. Linux does not. A path typo you write on the desktop will load fine there
+and **break on the ThinkPad**.
+
+Match real casing exactly in every `res://` path and `preload()`. If you need to
+change a file's capitalization, do it explicitly so git records it:
+
+```bash
+git mv -f OldName.gd NewName.gd
+```
+
+There are currently no case-colliding filenames in the repo — worth keeping it
+that way.
+
+---
+
+## Working across two machines
 
 ```bash
 git pull        # ALWAYS, before you touch anything
@@ -117,9 +226,17 @@ git commit -m "what changed and why"
 git push        # ALWAYS, before you walk away from the machine
 ```
 
-`pull.rebase` is set to `true`, so pulling replays your local commits on top of
-whatever came from the other machine. Linear history, no merge commit every
-time you switch desks.
+Clone **once** per machine. After that it's `pull` and `push` — cloning again
+throws away whatever hasn't been pushed.
+
+`pull.rebase` is set to `true` on the laptop; set it on the desktop too:
+
+```bash
+git config pull.rebase true
+```
+
+That replays your local commits on top of whatever came from the other machine.
+Linear history, no merge commit every time you switch desks.
 
 ### The one rule that actually matters
 
@@ -150,7 +267,8 @@ git rebase --continue
 |---|---|
 | `.godot/` | Per-machine import/shader caches. Regenerated on first open. |
 | `node_modules/` | ~125 MB across three copies of the addon's Node server. Reinstallable. Matched at any depth so a stray `npm install` can't sneak it into history. |
-| `.vscode/settings.json` | Holds a machine-specific absolute path to the Godot binary. |
+| `.vscode/settings.json` | Machine-specific absolute path to the Godot binary. `extensions.json` **is** tracked — recommended extensions are portable. |
+| `/GAME/` | Export output. The preset targets Windows Desktop → `GAME/NewIK.exe`, so exporting on the desktop drops a build here. Builds don't belong in history. |
 | `/android/` | Generated Android build template. |
 
 ---
