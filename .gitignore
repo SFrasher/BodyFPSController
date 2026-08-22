@@ -1,12 +1,24 @@
-# Godot 4+ specific ignores
+# ── Godot 4+ ─────────────────────────────────────────────────────────
+# Regenerated per machine. Contains import caches, shader caches, and
+# editor state that is machine-specific and must never be shared.
 .godot/
 /android/
 
+# ── Node dependencies ────────────────────────────────────────────────────
 # The godot_mcp addon bundles a Node server with ~125 MB of dependencies
-# inside res://. Reinstallable with npm install - never belongs in history.
-addons/godot_mcp/server/node_modules/
+# inside res://, in three separate copies (addons/server,
+# addons/godot_mcp/server, addons/godot_mcp/utils/server). Reinstallable
+# with `npm install` — never belongs in history. Matched at any depth so a
+# stray install in any of the three cannot be committed by accident.
+node_modules/
 
-# OS / editor noise
+# ── Editor-local settings ────────────────────────────────────────────────
+# extensions.json IS tracked — recommended extensions are worth sharing.
+# settings.json is NOT — it holds an absolute path to the Godot executable
+# that differs on every machine and would conflict on every sync.
+.vscode/settings.json
+
+# ── OS / editor noise ────────────────────────────────────────────────────
 *.tmp
 *~
 .DS_Store
