@@ -9,7 +9,7 @@ start_offset = 0.29619065
 loop_mode = 0
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_g3qns"]
-animation = &"Global/Combat_Rifle_(M)_TIP_180_RH"
+animation = &"UUS/A_N_TurnInPlace_R-180"
 use_custom_timeline = true
 timeline_length = 0.71000004
 stretch_time_scale = false
@@ -17,7 +17,7 @@ start_offset = 1.98
 loop_mode = 0
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_x1tcm"]
-animation = &"Global/Combat_Rifle_(M)_TIP_180_LH"
+animation = &"UUS/A_N_TurnInPlace_L-180"
 use_custom_timeline = true
 timeline_length = 0.8633332
 stretch_time_scale = false
@@ -49,31 +49,31 @@ fadeout_time = 0.2
 break_loop_at_end = true
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_npir4"]
-animation = &"Global/Combat_Rifle_(M)_Idle_01"
+animation = &"UUS/A_N_Idle"
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_twsbw"]
-animation = &"Global/Combat_Rifle_(M)_Strafe_FWD(Speed_1_8)"
+animation = &"UUS/Loop_Walk_A_N_Walk_Loop_F-000"
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_lxoha"]
-animation = &"Global/Combat_Rifle_(M)_Strafe_BWD(Speed_1_8)"
+animation = &"UUS/A_N_Walk_Loop_B-180"
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_b6g0a"]
-animation = &"Global/Combat_Rifle_(M)_Strafe_90_RH(Speed_1_8)"
+animation = &"UUS/A_N_Walk_Loop_RF-090"
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_luy56"]
-animation = &"Global/Combat_Rifle_(M)_Strafe_90_LH(Speed_1_8)"
+animation = &"UUS/A_N_Walk_Loop_LF-090"
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_ewwf0"]
-animation = &"Global/Combat_Rifle_(M)_Strafe_45_RH(Speed_1_8)"
+animation = &"UUS/A_N_Walk_Loop_RF-045"
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_kcbsn"]
-animation = &"Global/Combat_Rifle_(M)_Strafe_45_LH(Speed_1_8)"
+animation = &"UUS/A_N_Walk_Loop_LF-045"
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_xobd3"]
-animation = &"Global/Combat_Rifle_(M)_Strafe_135_RH(Speed_1_8)"
+animation = &"UUS/A_N_Walk_Loop_RB-135"
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_dr3ok"]
-animation = &"Global/Combat_Rifle_(M)_Strafe_135_LH(Speed_1_8)"
+animation = &"UUS/A_N_Walk_Loop_LB-135"
 
 [sub_resource type="AnimationNodeBlendSpace2D" id="AnimationNodeBlendSpace2D_ewwf0"]
 blend_point_0/node = SubResource("AnimationNodeAnimation_npir4")
@@ -97,6 +97,7 @@ blend_point_8/pos = Vector2(-0.5, -0.5)
 sync = true
 
 [resource]
+graph_offset = Vector2(454.51074, 39.989197)
 nodes/output/position = Vector2(1480, 240)
 nodes/Animation/node = SubResource("AnimationNodeAnimation_x1tcm")
 nodes/Animation/position = Vector2(640, 720)
