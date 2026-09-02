@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://b3bgscwjhnpdx" path="res://script/NewTPSCamera.gd" id="3_kisug"]
 [ext_resource type="Script" uid="uid://bswkeh1unxacb" path="res://script/FPSCamera.gd" id="4_fwxjn"]
 [ext_resource type="AnimationNodeBlendTree" uid="uid://bx5136pdcbqk7" path="res://AnimationTree/Strafe_controller_with_tip.tres" id="4_npir4"]
+[ext_resource type="Script" uid="uid://bqlbyqiahbjd3" path="res://script/DebugViewToggle.gd" id="5_7l5dv"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xm0pn"]
 resource_name = "M_AnimMan_Default"
@@ -4725,3 +4726,7 @@ target_pivot = NodePath("../TargetPivot")
 follow_target = NodePath("..")
 skeleton = NodePath("../Model/GeneralSkeleton")
 camera = NodePath("../Model/GeneralSkeleton/HeadBoneAttachment3D/Camera3D")
+
+[node name="DebugView" type="Camera3D" parent="." unique_id=631809991 node_paths=PackedStringArray("fps_view")]
+script = ExtResource("5_7l5dv")
+fps_view = NodePath("../Model/GeneralSkeleton/HeadBoneAttachment3D/Camera3D")
