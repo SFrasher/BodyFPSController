@@ -26,3 +26,11 @@ node_modules/
 # Export output. The Windows preset writes GAME/NewIK.exe here.
 # Builds are reproducible from source and do not belong in history.
 /GAME/
+
+# ── Raw animation source clips ───────────────────────────────────────
+# Individual .glb clips used to bake AnimLib/UUS.tres are NOT stored here.
+# The baked, self-contained library (AnimLib/UUS.tres) is what the game
+# actually loads at runtime. The raw source clips live in the separate
+# UUSAnimationConversion project and are only needed again if the library
+# has to be re-baked with different import/retarget settings.
+/Animations/

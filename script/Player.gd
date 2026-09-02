@@ -36,6 +36,22 @@ func _ready() -> void:
 	add_to_group("player")
 	animation_tree.set("parameters/FingersBlend2/blend_amount", 1.0)
 	animation_tree.set("parameters/TIP TimeScale/scale", 1.4)
+	_register_uus_animation_library()
+
+
+## Registers the baked UUS animation library on AnimationPlayer at runtime
+## instead of baking the reference into Player.tscn. Player.tscn's live IK
+## modifiers bake current bone pose into the scene on every editor save, so
+## data-only wiring like this is kept out of the scene file on purpose.
+func _register_uus_animation_library() -> void:
+	var anim_player := get_node_or_null("AnimationPlayer") as AnimationPlayer
+	if anim_player == null:
+		return
+	if anim_player.has_animation_library("UUS"):
+		return
+	var uus_lib := load("res://AnimLib/UUS.tres") as AnimationLibrary
+	if uus_lib:
+		anim_player.add_animation_library("UUS", uus_lib)
 
 
 func _process(delta: float) -> void:
