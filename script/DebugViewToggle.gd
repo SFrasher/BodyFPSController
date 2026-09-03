@@ -1,7 +1,9 @@
 extends Camera3D
-## Third-person debug view. Press V to toggle between this and the real FPS
-## camera (Model/GeneralSkeleton/HeadBoneAttachment3D/Camera3D, driven by
-## FPSCamera.gd).
+## Third-person debug views. Press V to cycle: FPS -> this (back chase view)
+## -> DebugViewFront (front chase view) -> back to FPS. This node owns the
+## cycle (not DebugViewFront) so there's exactly one place handling the V
+## keypress - two nodes each independently toggling on the same key would
+## double-cycle.
 ##
 ## Reads the FPS camera's own FINAL transform each frame -- after
 ## FPSCamera.gd has already written this frame's look rotation onto it -- and
@@ -17,6 +19,7 @@ extends Camera3D
 ## This is a lightweight, read-only observer, not a second controller.
 
 @export var fps_view: Camera3D
+@export var front_view: Camera3D
 @export var distance: float = 3.0
 @export var height: float = 0.35
 
@@ -43,6 +46,11 @@ func _process(_delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_V:
 		if current:
+			if front_view:
+				front_view.make_current()
+			else:
+				fps_view.make_current()
+		elif front_view and front_view.current:
 			fps_view.make_current()
 		else:
 			make_current()

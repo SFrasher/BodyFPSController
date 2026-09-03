@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://bswkeh1unxacb" path="res://script/FPSCamera.gd" id="4_fwxjn"]
 [ext_resource type="AnimationNodeBlendTree" uid="uid://bx5136pdcbqk7" path="res://AnimationTree/Strafe_controller_with_tip.tres" id="4_npir4"]
 [ext_resource type="Script" uid="uid://bqlbyqiahbjd3" path="res://script/DebugViewToggle.gd" id="5_7l5dv"]
+[ext_resource type="Script" uid="uid://byolxvqw3b1jq" path="res://script/DebugViewFront.gd" id="6_b304x"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xm0pn"]
 resource_name = "M_AnimMan_Default"
@@ -4727,6 +4728,11 @@ follow_target = NodePath("..")
 skeleton = NodePath("../Model/GeneralSkeleton")
 camera = NodePath("../Model/GeneralSkeleton/HeadBoneAttachment3D/Camera3D")
 
-[node name="DebugView" type="Camera3D" parent="." unique_id=631809991 node_paths=PackedStringArray("fps_view")]
+[node name="DebugView" type="Camera3D" parent="." unique_id=631809991 node_paths=PackedStringArray("fps_view", "front_view")]
 script = ExtResource("5_7l5dv")
+fps_view = NodePath("../Model/GeneralSkeleton/HeadBoneAttachment3D/Camera3D")
+front_view = NodePath("../DebugViewFront")
+
+[node name="DebugViewFront" type="Camera3D" parent="." unique_id=70977601 node_paths=PackedStringArray("fps_view")]
+script = ExtResource("6_b304x")
 fps_view = NodePath("../Model/GeneralSkeleton/HeadBoneAttachment3D/Camera3D")
