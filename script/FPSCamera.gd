@@ -39,6 +39,18 @@ extends Node3D
 @export var pitch_min: float = -60.0
 @export var mouse_sensitivity: float = 0.002
 @export var gamepad_sensitivity: float = 2.5
+## Hard neck-turn limit, in degrees of cam_angle_diff (signed angle from body-
+## forward to camera-forward - matches Player.gd::handle_turn_in_place()'s TIP
+## fire thresholds). Kept as separate constants here rather than reading
+## Player.gd's, since those are hardcoded literals, not exported/shared state -
+## if those ever change, update these to match.
+@export var neck_clamp_positive_deg: float = 60.0
+@export var neck_clamp_negative_deg: float = -70.0
+## Tiny overshoot so the corrected value lands just past the threshold
+## instead of exactly on it - landing exactly on it floats back a hair short
+## every frame (float round-trip through the trig), which silently defeats
+## Player.gd's <=/>= fire check. Confirmed live before this was added.
+@export var neck_fire_margin_deg: float = 0.1
 
 @export_group("Weapon Aiming Parameter")
 @export var target_pivot_x_offset: float = 2.45
@@ -117,6 +129,22 @@ func _process(delta: float) -> void:
 		pitch += gamepad_input.y * gamepad_sensitivity * delta
 
 	pitch = clamp(pitch, deg_to_rad(pitch_min), deg_to_rad(pitch_max))
+
+	# Hard neck-turn limit, relative to the body's CURRENT facing, recomputed
+	# fresh every frame - no state, no "is turn-in-place playing" check. If
+	# yaw is already inside the window this is a no-op. If the player keeps
+	# pushing against the edge while the body turns to catch up, they keep
+	# re-hitting the boundary as it shifts with the body - that's what makes
+	# it look like the camera is being carried along, but it's a side effect
+	# of continued input hitting a moving limit, not code forcing it to track.
+	if follow_target:
+		var forward_direction: Vector3 = follow_target.global_transform.basis.z.normalized()
+		var cam_direction: Vector3 = Vector3.BACK.rotated(Vector3.UP, yaw)
+		var neck_diff_deg := rad_to_deg(forward_direction.signed_angle_to(cam_direction, Vector3.UP))
+		if neck_diff_deg > neck_clamp_positive_deg:
+			yaw -= deg_to_rad(neck_diff_deg - (neck_clamp_positive_deg + neck_fire_margin_deg))
+		elif neck_diff_deg < neck_clamp_negative_deg:
+			yaw -= deg_to_rad(neck_diff_deg - (neck_clamp_negative_deg - neck_fire_margin_deg))
 
 	# Player.gd still reads this node's yaw via camera_target.global_transform
 	# .basis.get_euler().y for movement direction, body rotation and
