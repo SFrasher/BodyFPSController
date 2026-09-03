@@ -39,6 +39,23 @@ extends Node3D
 @export var pitch_min: float = -60.0
 @export var mouse_sensitivity: float = 0.002
 @export var gamepad_sensitivity: float = 2.5
+## Hard neck-turn limit, in degrees of cam_angle_diff (signed angle from body-
+## forward to camera-forward - same value Player.gd::angle_rotation() computes
+## and turn-in-place fires on). The head cannot look further from body-forward
+## than this in either direction, same as a real neck's range of motion.
+## Mirrors Player.gd::handle_turn_in_place()'s fire thresholds (60 / -70) - kept
+## as separate constants here rather than reading them from Player.gd, since
+## those are hardcoded literals there, not exported/shared state. If those
+## thresholds ever change, update these to match.
+@export var neck_clamp_positive_deg: float = 60.0
+@export var neck_clamp_negative_deg: float = -70.0
+## Landing the correction exactly on the threshold floated back a hair short
+## of it every frame (confirmed live: cam_angle_diff stuck at -69.9999996...,
+## never actually <= -70), so Player.gd's fire check never triggered from
+## mouse-look alone - the clamp silently ate turn-in-place. This tiny
+## overshoot margin makes the corrected value land just past the threshold
+## instead of exactly on it, so the fire condition is met reliably.
+@export var neck_fire_margin_deg: float = 0.1
 
 @export_group("Weapon Aiming Parameter")
 @export var target_pivot_x_offset: float = 2.45
@@ -117,6 +134,24 @@ func _process(delta: float) -> void:
 		pitch += gamepad_input.y * gamepad_sensitivity * delta
 
 	pitch = clamp(pitch, deg_to_rad(pitch_min), deg_to_rad(pitch_max))
+
+	# Hard neck-turn limit. Recomputed fresh every frame against follow_target's
+	# CURRENT facing (not read from follow_target.cam_angle_diff, which is a
+	# physics-frame-old value by the time this runs) using the exact same
+	# formula Player.gd::angle_rotation() uses, so the sign convention matches
+	# exactly and there's no independent drift between the two. Because it's
+	# measured against the body's live facing, once turn-in-place starts
+	# rotating the body via root motion, the ceiling on how far yaw can go keeps
+	# advancing with it in real time - you can keep looking further the same
+	# direction while the turn plays, you just can't outrun it.
+	if follow_target:
+		var forward_direction: Vector3 = follow_target.global_transform.basis.z.normalized()
+		var cam_direction: Vector3 = Vector3.BACK.rotated(Vector3.UP, yaw)
+		var neck_diff_deg := rad_to_deg(forward_direction.signed_angle_to(cam_direction, Vector3.UP))
+		if neck_diff_deg > neck_clamp_positive_deg:
+			yaw -= deg_to_rad(neck_diff_deg - (neck_clamp_positive_deg + neck_fire_margin_deg))
+		elif neck_diff_deg < neck_clamp_negative_deg:
+			yaw -= deg_to_rad(neck_diff_deg - (neck_clamp_negative_deg - neck_fire_margin_deg))
 
 	# Player.gd still reads this node's yaw via camera_target.global_transform
 	# .basis.get_euler().y for movement direction, body rotation and
