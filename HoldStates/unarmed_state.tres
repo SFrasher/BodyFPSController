@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="HoldStateConfig" format=3 uid="uid://c57l0y6n87s8i"]
+
+[ext_resource type="Script" uid="uid://bl575vw7m68yk" path="res://script/HoldStateConfig.gd" id="1_x1cqr"]
+
+[resource]
+script = ExtResource("1_x1cqr")
+state_name = "unarmed"

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="HoldStateConfig" format=3 uid="uid://cgmd0q5u33x0w"]
+
+[ext_resource type="Script" uid="uid://bl575vw7m68yk" path="res://script/HoldStateConfig.gd" id="1_v480m"]
+
+[resource]
+script = ExtResource("1_v480m")
+state_name = "armed"
+use_right_arm_weapon_ik = true
+use_left_arm_weapon_ik = true
+finger_grip_blend = 1.0
+weapon_visible = true
+use_spine_aim_ik = true
