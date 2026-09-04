@@ -32,16 +32,33 @@ class_name HoldStateConfig
 ## is free to swing naturally instead of gripping it.
 @export var weapon_visible: bool = false
 
-## Spine/Chest/UpperChest/Neck/Head aim chain: SpineCCDIK3D (bends toward
-## TargetPivot/SpineTargetWeaponAim), SpineCopyTransformModifier3D (rigidly
-## overwrites UpperChest's rotation toward the same target), and
-## SpineBoneTwistDisperser3D (spreads the twist CCDIK introduces back across
-## the chain so it doesn't all pile up on one joint). FPSCamera.gd drives
-## TargetPivot from camera pitch/yaw every frame, unconditionally - so with
-## this on, the torso is always leaning/twisting toward wherever the camera
-## looks. That's correct for aiming a weapon down sights, but with nothing to
-## aim, it just reads as a stiff, off-facing torso fighting the UUS animation's
-## own idle/walk sway. On for armed, off for unarmed - confirmed live (2026-
-## 09-03): with these three off, the unarmed torso and head sit exactly where
-## the animation puts them, facing straight, no residual twist.
+## Spine/Chest/UpperChest/Neck/Head aim chain: SpineCCDIK3D (bends toward a
+## target), SpineCopyTransformModifier3D (rigidly overwrites UpperChest's
+## rotation toward the same target), and SpineBoneTwistDisperser3D (spreads
+## the twist CCDIK introduces back across the chain so it doesn't all pile up
+## on one joint). On for both armed and unarmed now - see spine_pitch_only
+## below for what target each state points these three at.
 @export var use_spine_aim_ik: bool = false
+
+## Which target the spine chain above aims at, when use_spine_aim_ik is on.
+## false (armed): TargetPivot/SpineTargetWeaponAim, driven by FPSCamera.gd
+## from both camera pitch AND yaw (clamped cam_angle_diff) - correct for
+## aiming a weapon down sights, torso rotates to track the aim point. Note
+## this target's local transform (relative to TargetPivot) carries a baked
+## -33deg yaw on top of that - a deliberate weapon-stance twist (torso angled
+## across the body for a right-handed rifle grip), not incidental noise -
+## confirmed 2026-09-04 by decomposing its basis (clean (0,-33,0) Euler, no
+## X/Z component). That offset is specific to holding a weapon and must NOT
+## be reused for a plain look-target.
+## true (unarmed): PitchPivot/SpineTargetPitchOnly, driven by FPSCamera.gd
+## from pitch ONLY - PitchPivot's yaw is never written so it always points
+## straight along the body's own forward, AND SpineTargetPitchOnly itself
+## has an IDENTITY local rotation (same position offset as
+## SpineTargetWeaponAim, but none of its baked yaw) - unlike the first
+## attempt at this same fix (2026-09-04, reverted same day), which copied
+## SpineTargetWeaponAim's local transform verbatim, including that -33deg
+## weapon-stance twist, and put a constant rightward torso rotation on the
+## unarmed body regardless of camera yaw. Confirmed via live testing that
+## identity rotation removes that twist (UpperChest yaw measured ~-0.28deg,
+## i.e. noise, instead of ~-33deg) while pitch bending still works normally.
+@export var spine_pitch_only: bool = false
