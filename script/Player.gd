@@ -65,7 +65,7 @@ func _ready() -> void:
 	spine_ccdik_mod = get_node_or_null("Model/GeneralSkeleton/SpineCCDIK3D")
 	spine_copy_mod = get_node_or_null("Model/GeneralSkeleton/SpineCopyTransformModifier3D")
 	spine_twist_mod = get_node_or_null("Model/GeneralSkeleton/SpineBoneTwistDisperser3D")
-	_apply_hold_state(current_hold_state if current_hold_state else armed_state)
+	_apply_hold_state(current_hold_state if current_hold_state else unarmed_state)
 
 
 ## Registers the baked UUS animation library on AnimationPlayer at runtime
