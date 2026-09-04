@@ -24,12 +24,13 @@ var targetspeed
 var strafe_input:Vector2 = Vector2.ZERO
 var camera_rotation: float = 0.0
 
-## 'True' to enable Turn In Place. Off for now (2026-09-03) - the body
-## never actually turns during TIP (the clips have no root motion track, only
-## the mesh visually turns via the Hips bone), and fixing that properly
-## turned into more of a rabbit hole than it was worth today. Parked rather
-## than shipped half-broken; see project notes for what was tried.
-@export var enable_tip: bool = false
+## 'True' to enable Turn In Place. Re-enabled 2026-09-04 with the Hips delta-
+## extraction fix below - the TIP clips carry no root motion track, so without
+## this the body itself never turns, only the mesh (via the Hips bone). See
+## _update_tip_body_rotation() and project notes' "Turn-in-place body rotation"
+## section. Needs real play verification, not just tool-simulated testing -
+## that's exactly what was skipped last time this was attempted.
+@export var enable_tip: bool = true
 
 ## Data-driven armed/unarmed switch. See HoldStateConfig.gd and
 ## ik-and-player-conversion-map.md's "unarmed conversion" section for why
@@ -52,11 +53,38 @@ var turn_in_place: bool = false
 var tip_timer: float = 0.0
 var tip_cool_down: float = 0.5
 
+## Turn-in-place body rotation. The TIP clips (A_N_TurnInPlace_{L,R}-090) have
+## no %GeneralSkeleton:Root track, so AnimationTree's root motion is zero for
+## them - only the Hips bone (parented directly to Root) carries the real
+## turn, as a full local rotation. Each frame the animation plays, this reads
+## how much Hips actually rotated since last frame and applies that same
+## delta to the body's real transform, then freezes Hips back to its pre-turn
+## pose so the rotation only ever shows up once (on the body), not doubled
+## onto the bone. Requires Player.process_priority above AnimationTree's
+## default (0) so this reads/overwrites Hips AFTER animation applies this
+## frame's pose, not before - set in _ready().
+var tip_skeleton: Skeleton3D
+var tip_hips_idx: int = -1
+var tip_prev_raw_hips_rot: Quaternion = Quaternion.IDENTITY
+var tip_frozen_hips_rot: Quaternion = Quaternion.IDENTITY
+var tip_was_active: bool = false
+## True only once the OneShot has reached full weight (past its fade-in,
+## before its fade-out) and a tracking baseline has been captured there.
+## Rotation deltas are only ever summed onto the body while this is true -
+## see _update_tip_body_rotation()'s doc comment for why.
+var tip_was_tracking: bool = false
+
 
 func _ready() -> void:
 	add_to_group("player")
+	# Runs after AnimationTree's own (default-priority) update each frame - see
+	# the tip_* vars' doc comment above.
+	process_priority = 100
 	animation_tree.set("parameters/TIP TimeScale/scale", 1.4)
 	_register_uus_animation_library()
+	tip_skeleton = get_node_or_null("Model/GeneralSkeleton")
+	if tip_skeleton:
+		tip_hips_idx = tip_skeleton.find_bone("Hips")
 	weapon_r_upper_arm_mod = get_node_or_null("Model/GeneralSkeleton/WeaponCopyTransformModifier3D")
 	weapon_r_hand_mod = get_node_or_null("Model/GeneralSkeleton/WeaponCopyTransformModifier3D2")
 	lh_weapon_ik_mod = get_node_or_null("Model/GeneralSkeleton/LHTwoBoneIK3D")
@@ -125,6 +153,63 @@ func _process(delta: float) -> void:
 	root_motion(delta, true)
 	handle_strafe_animation(delta)
 	handle_turn_in_place(delta)
+	_update_tip_body_rotation()
+
+
+## See tip_* vars' doc comment above for the full explanation. Must run after
+## AnimationTree has applied this frame's pose (Player.process_priority = 100
+## guarantees that), so tip_skeleton.get_bone_pose_rotation() reads the
+## animation's real, current-frame Hips rotation.
+func _update_tip_body_rotation() -> void:
+	if tip_hips_idx < 0 or tip_skeleton == null:
+		return
+	var tip_active: bool = animation_tree.get("parameters/TIP/active")
+	if tip_active:
+		var current_raw := tip_skeleton.get_bone_pose_rotation(tip_hips_idx)
+		if not tip_was_active:
+			# Turn just started this frame - capture the baseline, no delta yet.
+			tip_frozen_hips_rot = current_raw
+			tip_prev_raw_hips_rot = current_raw
+			tip_was_tracking = false
+		else:
+			# AnimationNodeOneShot (mix_mode = BLEND) crossfades with whatever
+			# is underneath (idle) during its fade_in/fade_out windows, so the
+			# live skeleton pose there is a BLEND, not the raw clip - reading a
+			# delta from it during either fade means capturing the fade's own
+			# blend-toward-idle motion as if it were more turning. That's what
+			# made the body visibly unwind back toward its start facing at the
+			# end of every turn (found 2026-09-04 via frame-by-frame logging:
+			# Hips' raw pose smoothly reverted to near-identity over exactly
+			# fadeout_time while active was still true). Only sum the delta
+			# while at full weight - past fade-in, before fade-out.
+			var fade_in_remaining: float = animation_tree.get("parameters/TIP/fade_in_remaining")
+			var fade_out_remaining: float = animation_tree.get("parameters/TIP/fade_out_remaining")
+			var at_full_weight: bool = fade_in_remaining <= 0.0 and fade_out_remaining <= 0.0
+			if at_full_weight:
+				if tip_was_tracking:
+					var delta_rot: Quaternion = tip_prev_raw_hips_rot.inverse() * current_raw
+					# Hips carries real mocap weight-shift/bounce alongside the
+					# turn - a full quaternion multiply would bake that tilt/
+					# roll onto the body permanently. Swing-twist decompose
+					# delta_rot around UP and apply only the twist (yaw)
+					# component; the body should turn, not tip over.
+					var twist_axis := Vector3(delta_rot.x, delta_rot.y, delta_rot.z).project(Vector3.UP)
+					var twist := Quaternion(twist_axis.x, twist_axis.y, twist_axis.z, delta_rot.w).normalized()
+					rotation.y += 2.0 * atan2(twist.y, twist.w)
+				else:
+					# Fade-in just finished - start tracking fresh from here so
+					# the fade-in's own damped/blended motion isn't counted.
+					pass
+				tip_prev_raw_hips_rot = current_raw
+				tip_was_tracking = true
+			# else: fading in or out - don't track, don't update
+			# tip_prev_raw_hips_rot (Hips stays frozen below regardless, so
+			# there's nothing to desync when tracking resumes).
+		tip_skeleton.set_bone_pose_rotation(tip_hips_idx, tip_frozen_hips_rot)
+		tip_was_active = true
+	else:
+		tip_was_active = false
+		tip_was_tracking = false
 
 
 func _physics_process(delta: float) -> void:
