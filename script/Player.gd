@@ -127,18 +127,10 @@ func _apply_hold_state(state: HoldStateConfig) -> void:
 		lh_weapon_ik_mod.active = state.use_left_arm_weapon_ik
 	if lh_weapon_copy_mod:
 		lh_weapon_copy_mod.active = state.use_left_arm_weapon_ik
-	# Both the CCDIK target and the CopyTransformModifier reference point at
-	# whichever pivot the state calls for - full pitch+yaw aim gimbal
-	# (TargetPivot/SpineTargetWeaponAim) when armed, pitch-only
-	# (PitchPivot/SpineTargetPitchOnly) when unarmed. Paths are relative to
-	# each modifier's own node, matching what's baked into Player.tscn.
-	var spine_target_path := NodePath("../../../PitchPivot/SpineTargetPitchOnly" if state.spine_pitch_only else "../../../TargetPivot/SpineTargetWeaponAim")
 	if spine_ccdik_mod:
 		spine_ccdik_mod.active = state.use_spine_aim_ik
-		spine_ccdik_mod.set("settings/0/target_node", spine_target_path)
 	if spine_copy_mod:
 		spine_copy_mod.active = state.use_spine_aim_ik
-		spine_copy_mod.set("settings/0/reference_node", spine_target_path)
 	if spine_twist_mod:
 		spine_twist_mod.active = state.use_spine_aim_ik
 	animation_tree.set("parameters/FingersBlend2/blend_amount", state.finger_grip_blend)

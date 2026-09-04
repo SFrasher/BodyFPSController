@@ -32,24 +32,16 @@ class_name HoldStateConfig
 ## is free to swing naturally instead of gripping it.
 @export var weapon_visible: bool = false
 
-## Spine/Chest/UpperChest/Neck/Head aim chain: SpineCCDIK3D (bends toward a
-## target), SpineCopyTransformModifier3D (rigidly overwrites UpperChest's
-## rotation toward the same target), and SpineBoneTwistDisperser3D (spreads
-## the twist CCDIK introduces back across the chain so it doesn't all pile up
-## on one joint). On for both armed and unarmed now - see spine_pitch_only
-## below for what target each state points these three at.
+## Spine/Chest/UpperChest/Neck/Head aim chain: SpineCCDIK3D (bends toward
+## TargetPivot/SpineTargetWeaponAim), SpineCopyTransformModifier3D (rigidly
+## overwrites UpperChest's rotation toward the same target), and
+## SpineBoneTwistDisperser3D (spreads the twist CCDIK introduces back across
+## the chain so it doesn't all pile up on one joint). FPSCamera.gd drives
+## TargetPivot from camera pitch/yaw every frame, unconditionally - so with
+## this on, the torso is always leaning/twisting toward wherever the camera
+## looks. That's correct for aiming a weapon down sights, but with nothing to
+## aim, it just reads as a stiff, off-facing torso fighting the UUS animation's
+## own idle/walk sway. On for armed, off for unarmed - confirmed live (2026-
+## 09-03): with these three off, the unarmed torso and head sit exactly where
+## the animation puts them, facing straight, no residual twist.
 @export var use_spine_aim_ik: bool = false
-
-## Which target the spine chain above aims at, when use_spine_aim_ik is on.
-## false (armed): TargetPivot/SpineTargetWeaponAim, driven by FPSCamera.gd
-## from both camera pitch AND yaw (clamped cam_angle_diff) - correct for
-## aiming a weapon down sights, torso rotates to track the aim point.
-## true (unarmed): PitchPivot/SpineTargetPitchOnly, driven by FPSCamera.gd
-## from pitch ONLY - PitchPivot's yaw is never written so it always points
-## straight along the body's own forward. With nothing to aim, following the
-## full yaw-tracking target was what read as a stiff, off-facing torso
-## fighting the UUS animation's own idle/walk sway (confirmed live 2026-09-
-## 03, which is why this chain was disabled outright for unarmed at the
-## time). Pitch-only keeps the intended "look up/down bends the spine"
-## camera feel without that facing-direction fight.
-@export var spine_pitch_only: bool = false

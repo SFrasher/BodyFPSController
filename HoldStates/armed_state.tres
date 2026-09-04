@@ -10,4 +10,3 @@ use_left_arm_weapon_ik = true
 finger_grip_blend = 1.0
 weapon_visible = true
 use_spine_aim_ik = true
-spine_pitch_only = false
