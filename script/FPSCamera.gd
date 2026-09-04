@@ -21,6 +21,12 @@ extends Node3D
 ## node drives TargetPivot every frame, unchanged in intent.
 
 @export var target_pivot: Marker3D
+## Second aim gimbal, pitch-only. Yaw is never written to it (stays at its
+## scene-default 0, i.e. always pointing along the body's own forward) - used
+## as the unarmed spine-aim target (see HoldStateConfig.spine_pitch_only) so
+## looking up/down still bends the torso the way it does when armed, without
+## the full yaw-tracking target's torso-twist-vs-facing-direction fight.
+@export var pitch_pivot: Marker3D
 @export var follow_target: Node3D
 
 @export_group("Camera")
@@ -79,6 +85,8 @@ func _ready() -> void:
 	_capture_mouse()
 	if target_pivot:
 		target_pivot.rotation_degrees = Vector3.ZERO
+	if pitch_pivot:
+		pitch_pivot.rotation_degrees = Vector3.ZERO
 	if follow_target:
 		yaw = follow_target.rotation.y
 	# Connected in code rather than in the editor so this handler runs AFTER
@@ -167,6 +175,15 @@ func _process(delta: float) -> void:
 			clampf(follow_target.cam_angle_diff, -90.0, 90.0),
 			t
 		)
+		# Same pitch value, same damping - just never touch .y, so this pivot's
+		# yaw stays locked to the body's own forward instead of tracking the
+		# camera's neck-turn.
+		if pitch_pivot:
+			pitch_pivot.rotation_degrees.x = lerp(
+				pitch_pivot.rotation_degrees.x,
+				rad_to_deg(pitch) + target_pivot_x_offset,
+				t
+			)
 
 
 func _on_skeleton_updated() -> void:

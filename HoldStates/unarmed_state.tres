@@ -5,3 +5,5 @@
 [resource]
 script = ExtResource("1_x1cqr")
 state_name = "unarmed"
+use_spine_aim_ik = true
+spine_pitch_only = true
