@@ -40,7 +40,7 @@ var camera_rotation: float = 0.0
 @export var unarmed_state: HoldStateConfig = preload("res://HoldStates/unarmed_state.tres")
 @export var current_hold_state: HoldStateConfig
 
-## Gait switching between WALK and JOG. Hold [sprint] (already bound to Left Ctrl /
+## Gait switching between WALK and JOG. Hold [sprint] (already bound to Shift /
 ## joypad button 1 in the input map, previously unused) to jog; release for walk.
 ## Smoothed rather than snapped straight to 0/1 so the crossfade doesn't pop - the
 ## AnimationTree's new "Gait" Blend2 node (WALK on input 0, JOG on input 1) has
@@ -50,6 +50,25 @@ var camera_rotation: float = 0.0
 ## loop only for this pass - jog starts/stops/pivots are Phase 3, not wired yet.
 @export var gait_blend_speed: float = 6.0
 var gait_blend: float = 0.0
+
+## Procedural crouch (Phase 1). Toggle [crouch] (already bound to Ctrl in the
+## input map, previously unused) to crouch/stand. Hips lowers by
+## crouch_height while two leg TwoBoneIK3D modifiers (LLegTwoBoneIK3D/
+## RLegTwoBoneIK3D under GeneralSkeleton) hold the feet planted at their
+## current animated position, bending the knees - so the normal walk/jog
+## gait still plays underneath, just bent and lowered, rather than a canned
+## crouch pose. No move-speed penalty, no ceiling-clearance gating this pass
+## - see the Crouch design write-up in the project's Claude-project notes.
+## Exported rather than hardcoded per the reusable-system tunables rule.
+@export var crouch_height: float = 0.35
+@export var crouch_transition_speed: float = 1.5
+var is_crouching: bool = false
+var crouch_amount: float = 0.0
+var crouch_leg_modifier: Node
+var l_leg_ik_mod: TwoBoneIK3D
+var r_leg_ik_mod: TwoBoneIK3D
+var l_foot_rot_mod: CopyTransformModifier3D
+var r_foot_rot_mod: CopyTransformModifier3D
 
 var weapon_r_upper_arm_mod: CopyTransformModifier3D
 var weapon_r_hand_mod: CopyTransformModifier3D
@@ -104,7 +123,62 @@ func _ready() -> void:
 	spine_ccdik_mod = get_node_or_null("Model/GeneralSkeleton/SpineCCDIK3D")
 	spine_copy_mod = get_node_or_null("Model/GeneralSkeleton/SpineCopyTransformModifier3D")
 	spine_twist_mod = get_node_or_null("Model/GeneralSkeleton/SpineBoneTwistDisperser3D")
+	crouch_leg_modifier = get_node_or_null("Model/GeneralSkeleton/CrouchLegModifier")
+	l_leg_ik_mod = get_node_or_null("Model/GeneralSkeleton/LLegTwoBoneIK3D")
+	r_leg_ik_mod = get_node_or_null("Model/GeneralSkeleton/RLegTwoBoneIK3D")
+	l_foot_rot_mod = _make_foot_rotation_modifier("LFootRotCopy", "LeftFoot", "../../../LeftFootTarget")
+	r_foot_rot_mod = _make_foot_rotation_modifier("RFootRotCopy", "RightFoot", "../../../RightFootTarget")
 	_apply_hold_state(current_hold_state if current_hold_state else unarmed_state)
+
+
+## Restores the foot's orientation after the leg IK has run.
+##
+## TwoBoneIK3D solves the leg's POSITION onto the foot target correctly, but it
+## does NOT take the target's rotation - it leaves the foot aligned to the
+## solved chain. So once Hips drops, the shin swings and carries the foot round
+## with it, pitching the toes into the floor. Measured live at crouch_height
+## 0.35: the solved foot sat 52.5 deg (L) / 54.6 deg (R) off level while the
+## target it was solving to was 1.8 deg off level and the position landed on
+## that target exactly. Standing, with these modifiers gated off, the same foot
+## reads 1.8 deg. So the tilt is introduced by the solver, not by the captured
+## rotation.
+##
+## The fix reuses the pairing the arm rig already uses - TwoBoneIK3D for
+## position plus a CopyTransformModifier3D for the end bone's rotation
+## (LHTwoBoneIK3D + LHCopyTransformModifier3D2) - rather than inventing a new
+## mechanism. `copy = 2` is rotation-only (position is already right from the
+## IK) and `axes = 7` is all three rotation axes; both bitmask meanings were
+## confirmed against SpineCopyTransformModifier3D, which is yaw-only and reads
+## copy = 2 / axes = 2.
+##
+## The reference is the foot target, which carries the rotation the locomotion
+## clip gave the foot at standing height - i.e. the foot gets back exactly the
+## orientation it has when not crouched, keeping the sole flat through stance
+## and preserving the natural toe roll through swing. (If a strictly
+## floor-flat foot is ever wanted instead, level the target's basis in
+## CrouchLegModifier rather than changing anything here.)
+##
+## Created from script rather than added to Player.tscn deliberately, for two
+## reasons: it must run AFTER both leg IK modifiers, and appending at runtime
+## puts it last in GeneralSkeleton's child list, which is exactly that
+## ordering; and it keeps Player.tscn untouched - see the project notes'
+## standing lesson about this scene baking pose drift into every save.
+func _make_foot_rotation_modifier(node_name: String, apply_bone: String, reference_path: String) -> CopyTransformModifier3D:
+	var skel := get_node_or_null("Model/GeneralSkeleton") as Skeleton3D
+	if skel == null:
+		push_error("Player: GeneralSkeleton not found - crouch foot rotation modifier not created.")
+		return null
+	var mod := CopyTransformModifier3D.new()
+	mod.name = node_name
+	skel.add_child(mod)
+	mod.set("setting_count", 1)
+	mod.set("settings/0/apply_bone_name", apply_bone)
+	mod.set("settings/0/reference_type", 1)
+	mod.set("settings/0/reference_node", NodePath(reference_path))
+	mod.set("settings/0/copy", 2)
+	mod.set("settings/0/axes", 7)
+	mod.active = false
+	return mod
 
 
 ## Registers the baked UUS animation library on AnimationPlayer at runtime
@@ -172,6 +246,7 @@ func _process(delta: float) -> void:
 	root_motion(delta, true)
 	handle_strafe_animation(delta)
 	handle_gait(delta)
+	handle_crouch(delta)
 	handle_turn_in_place(delta)
 	_update_tip_body_rotation()
 
@@ -184,6 +259,31 @@ func handle_gait(delta):
 	var target_gait: float = 1.0 if Input.is_action_pressed("sprint") else 0.0
 	gait_blend = move_toward(gait_blend, target_gait, gait_blend_speed * delta)
 	animation_tree.set("parameters/Gait/blend_amount", gait_blend)
+
+
+## Toggle [crouch] to crouch/stand; crouch_amount eases toward crouch_height
+## or 0 rather than snapping, so the transition doesn't pop. The crouch
+## modifier chain (CrouchLegModifier + the two leg TwoBoneIK3D nodes) is left
+## active only while there's actually something for it to do - both to avoid
+## solving leg IK for no reason at rest and to match how every other gated
+## modifier chain in this script works (see _apply_hold_state()).
+func handle_crouch(delta):
+	if Input.is_action_just_pressed("crouch"):
+		is_crouching = !is_crouching
+	var target_amount: float = crouch_height if is_crouching else 0.0
+	crouch_amount = move_toward(crouch_amount, target_amount, crouch_transition_speed * delta)
+	var modifiers_needed: bool = crouch_amount > 0.001
+	if crouch_leg_modifier:
+		crouch_leg_modifier.active = modifiers_needed
+		crouch_leg_modifier.crouch_amount = crouch_amount
+	if l_leg_ik_mod:
+		l_leg_ik_mod.active = modifiers_needed
+	if r_leg_ik_mod:
+		r_leg_ik_mod.active = modifiers_needed
+	if l_foot_rot_mod:
+		l_foot_rot_mod.active = modifiers_needed
+	if r_foot_rot_mod:
+		r_foot_rot_mod.active = modifiers_needed
 
 
 ## See tip_* vars' doc comment above for the full explanation. Must run after

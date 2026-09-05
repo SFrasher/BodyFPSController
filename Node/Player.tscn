@@ -1,6 +1,7 @@
 [gd_scene format=4 uid="uid://duqyi0pwucmxf"]
 
 [ext_resource type="Script" uid="uid://bw5t1ifxqximo" path="res://script/Player.gd" id="1_kisug"]
+[ext_resource type="Script" uid="uid://bq1o2e3ibydpv" path="res://script/CrouchLegModifier.gd" id="2_24127"]
 [ext_resource type="Script" uid="uid://b3bgscwjhnpdx" path="res://script/NewTPSCamera.gd" id="3_kisug"]
 [ext_resource type="Script" uid="uid://bswkeh1unxacb" path="res://script/FPSCamera.gd" id="4_fwxjn"]
 [ext_resource type="AnimationNodeBlendTree" uid="uid://bx5136pdcbqk7" path="res://AnimationTree/Strafe_controller_with_tip.tres" id="4_npir4"]
@@ -4483,6 +4484,27 @@ bones/67/position = Vector3(0, 0, 0)
 bones/67/rotation = Quaternion(1.1175873e-08, -1.4901163e-08, -6.519258e-09, 1)
 bones/67/scale = Vector3(0.99999994, 0.99999994, 0.9999999)
 
+[node name="CrouchLegModifier" type="SkeletonModifier3D" parent="Model/GeneralSkeleton" unique_id=345529229]
+unique_name_in_owner = false
+process_mode = 0
+process_priority = 0
+process_physics_priority = 0
+process_thread_group = 0
+physics_interpolation_mode = 0
+auto_translate_mode = 0
+editor_description = ""
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+rotation_edit_mode = 0
+rotation_order = 2
+top_level = false
+visible = true
+visibility_parent = NodePath("")
+active = false
+influence = 1.0
+script = ExtResource("2_24127")
+left_foot_target = NodePath("../../../LeftFootTarget")
+right_foot_target = NodePath("../../../RightFootTarget")
+
 [node name="AnimMan" type="MeshInstance3D" parent="Model/GeneralSkeleton" unique_id=262490333]
 mesh = SubResource("ArrayMesh_cssx5")
 skin = SubResource("Skin_17tkl")
@@ -4636,6 +4658,36 @@ bone_idx = 48
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 0.1)
 current = true
 
+[node name="LLegTwoBoneIK3D" type="TwoBoneIK3D" parent="Model/GeneralSkeleton" unique_id=74604782]
+active = false
+setting_count = 1
+settings/0/target_node = NodePath("../../../LeftFootTarget")
+settings/0/pole_node = NodePath("../../../LeftKneePole")
+settings/0/root_bone_name = "LeftUpperLeg"
+settings/0/root_bone = 49
+settings/0/middle_bone_name = "LeftLowerLeg"
+settings/0/middle_bone = 50
+settings/0/pole_direction = 0
+settings/0/end_bone_name = "LeftFoot"
+settings/0/end_bone = 52
+settings/0/use_virtual_end = false
+settings/0/extend_end_bone = false
+
+[node name="RLegTwoBoneIK3D" type="TwoBoneIK3D" parent="Model/GeneralSkeleton" unique_id=479276597]
+active = false
+setting_count = 1
+settings/0/target_node = NodePath("../../../RightFootTarget")
+settings/0/pole_node = NodePath("../../../RightKneePole")
+settings/0/root_bone_name = "RightUpperLeg"
+settings/0/root_bone = 55
+settings/0/middle_bone_name = "RightLowerLeg"
+settings/0/middle_bone = 56
+settings/0/pole_direction = 0
+settings/0/end_bone_name = "RightFoot"
+settings/0/end_bone = 58
+settings/0/use_virtual_end = false
+settings/0/extend_end_bone = false
+
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=214280936]
 libraries/Global = SubResource("AnimationLibrary_e6py5")
 
@@ -4652,6 +4704,8 @@ parameters/TIP/request = 0
 "parameters/TIP Transition/current_state" = ""
 "parameters/TIP Transition/transition_request" = "left"
 "parameters/TIP Transition/current_index" = -1
+parameters/JOG/blend_position = Vector2(0, 0)
+parameters/Gait/blend_amount = 0.0
 
 [node name="BoneAttachment3D" type="BoneAttachment3D" parent="." unique_id=724284998]
 transform = Transform3D(0.8402646, -0.04319347, -0.54045314, -0.07300201, 0.97873086, -0.19172022, 0.5372392, 0.2005499, 0.81923974, 0.0033999411, 1.2934648, 0.03244845)
@@ -4745,3 +4799,15 @@ front_view = NodePath("../DebugViewFront")
 [node name="DebugViewFront" type="Camera3D" parent="." unique_id=70977601 node_paths=PackedStringArray("fps_view")]
 script = ExtResource("6_b304x")
 fps_view = NodePath("../Model/GeneralSkeleton/HeadBoneAttachment3D/Camera3D")
+
+[node name="LeftFootTarget" type="Marker3D" parent="." unique_id=645642163]
+transform = Transform3D(-1, 0, 0, 0, 0, 1, 0, 1, 0, 0.10680995, 0.12827724, -0.043228358)
+
+[node name="RightFootTarget" type="Marker3D" parent="." unique_id=818160427]
+transform = Transform3D(-1, 0, 0, 0, 0, 1, 0, 1, 0, -0.10703953, 0.12871855, -0.051790927)
+
+[node name="LeftKneePole" type="Marker3D" parent="." unique_id=1988953027]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.090058096, 0.6529984, 0.5946996)
+
+[node name="RightKneePole" type="Marker3D" parent="." unique_id=1580778833]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.09005803, 0.65300024, 0.5946997)
