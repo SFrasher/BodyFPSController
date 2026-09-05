@@ -18,6 +18,57 @@ animation = &"UUS/A_N_TurnInPlace_L-090"
 filter_enabled = true
 filters = ["%GeneralSkeleton:LeftIndexDistal", "%GeneralSkeleton:LeftIndexIntermediate", "%GeneralSkeleton:LeftIndexProximal", "%GeneralSkeleton:LeftLittleDistal", "%GeneralSkeleton:LeftLittleIntermediate", "%GeneralSkeleton:LeftLittleProximal", "%GeneralSkeleton:LeftMiddleDistal", "%GeneralSkeleton:LeftMiddleIntermediate", "%GeneralSkeleton:LeftMiddleProximal", "%GeneralSkeleton:LeftRingDistal", "%GeneralSkeleton:LeftRingIntermediate", "%GeneralSkeleton:LeftRingProximal", "%GeneralSkeleton:LeftThumbDistal", "%GeneralSkeleton:LeftThumbMetacarpal", "%GeneralSkeleton:LeftThumbProximal", "%GeneralSkeleton:RightIndexDistal", "%GeneralSkeleton:RightIndexIntermediate", "%GeneralSkeleton:RightIndexProximal", "%GeneralSkeleton:RightLittleDistal", "%GeneralSkeleton:RightLittleIntermediate", "%GeneralSkeleton:RightLittleProximal", "%GeneralSkeleton:RightMiddleDistal", "%GeneralSkeleton:RightMiddleIntermediate", "%GeneralSkeleton:RightMiddleProximal", "%GeneralSkeleton:RightRingDistal", "%GeneralSkeleton:RightRingIntermediate", "%GeneralSkeleton:RightRingProximal", "%GeneralSkeleton:RightThumbDistal", "%GeneralSkeleton:RightThumbMetacarpal", "%GeneralSkeleton:RightThumbProximal"]
 
+[sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_krgux"]
+sync = true
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_qab87"]
+animation = &"UUS/A_N_Idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_c3cvt"]
+animation = &"UUS/Loop_Jog_A_N_Jog_Loop_F-000"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_7iw5a"]
+animation = &"UUS/A_N_Jog_Loop_B-180"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_r2j8d"]
+animation = &"UUS/A_N_Jog_Loop_RF-090"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_trnuk"]
+animation = &"UUS/A_N_Jog_Loop_LF-090"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_2t206"]
+animation = &"UUS/A_N_Jog_Loop_RF-045"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_t2pta"]
+animation = &"UUS/A_N_Jog_Loop_LF-045"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_1rdjq"]
+animation = &"UUS/A_N_Jog_Loop_RB-135"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_xnlq2"]
+animation = &"UUS/A_N_Jog_Loop_LB-135"
+
+[sub_resource type="AnimationNodeBlendSpace2D" id="AnimationNodeBlendSpace2D_55tps"]
+blend_point_0/node = SubResource("AnimationNodeAnimation_qab87")
+blend_point_0/pos = Vector2(0, 0)
+blend_point_1/node = SubResource("AnimationNodeAnimation_c3cvt")
+blend_point_1/pos = Vector2(0, 1)
+blend_point_2/node = SubResource("AnimationNodeAnimation_7iw5a")
+blend_point_2/pos = Vector2(0, -1)
+blend_point_3/node = SubResource("AnimationNodeAnimation_r2j8d")
+blend_point_3/pos = Vector2(1, 0)
+blend_point_4/node = SubResource("AnimationNodeAnimation_trnuk")
+blend_point_4/pos = Vector2(-1, 0)
+blend_point_5/node = SubResource("AnimationNodeAnimation_2t206")
+blend_point_5/pos = Vector2(0.5, 0.5)
+blend_point_6/node = SubResource("AnimationNodeAnimation_t2pta")
+blend_point_6/pos = Vector2(-0.5, 0.5)
+blend_point_7/node = SubResource("AnimationNodeAnimation_1rdjq")
+blend_point_7/pos = Vector2(0.5, -0.5)
+blend_point_8/node = SubResource("AnimationNodeAnimation_xnlq2")
+blend_point_8/pos = Vector2(-0.5, -0.5)
+sync = true
+
 [sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_kisug"]
 
 [sub_resource type="AnimationNodeTransition" id="AnimationNodeTransition_xyeyv"]
@@ -104,4 +155,8 @@ nodes/TIP/position = Vector2(940, 220)
 "nodes/TIP Transition/position" = Vector2(1000, 740)
 "nodes/Animation 3/node" = SubResource("AnimationNodeAnimation_g3qns")
 "nodes/Animation 3/position" = Vector2(640, 920)
-node_connections = [&"output", 0, &"FingersBlend2", &"FingersBlend2", 0, &"TIP", &"FingersBlend2", 1, &"Animation 2", &"TIP", 0, &"WALK", &"TIP", 1, &"TIP TimeScale", &"TIP TimeScale", 0, &"TIP Transition", &"TIP Transition", 0, &"Animation", &"TIP Transition", 1, &"Animation 3"]
+nodes/JOG/node = SubResource("AnimationNodeBlendSpace2D_55tps")
+nodes/JOG/position = Vector2(700, 420)
+nodes/Gait/node = SubResource("AnimationNodeBlend2_krgux")
+nodes/Gait/position = Vector2(900, 300)
+node_connections = [&"output", 0, &"FingersBlend2", &"FingersBlend2", 0, &"TIP", &"FingersBlend2", 1, &"Animation 2", &"TIP", 0, &"Gait", &"TIP", 1, &"TIP TimeScale", &"TIP TimeScale", 0, &"TIP Transition", &"TIP Transition", 0, &"Animation", &"TIP Transition", 1, &"Animation 3", &"Gait", 0, &"WALK", &"Gait", 1, &"JOG"]

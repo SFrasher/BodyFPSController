@@ -40,6 +40,17 @@ var camera_rotation: float = 0.0
 @export var unarmed_state: HoldStateConfig = preload("res://HoldStates/unarmed_state.tres")
 @export var current_hold_state: HoldStateConfig
 
+## Gait switching between WALK and JOG. Hold [sprint] (already bound to Left Ctrl /
+## joypad button 1 in the input map, previously unused) to jog; release for walk.
+## Smoothed rather than snapped straight to 0/1 so the crossfade doesn't pop - the
+## AnimationTree's new "Gait" Blend2 node (WALK on input 0, JOG on input 1) has
+## sync = true, so Godot keeps both blend spaces advancing together even while one
+## has zero weight, which is what keeps the transition from skating. See the
+## Descent-scoped roadmap's "Phase 2 - jog core" for why this exists. Steady-state
+## loop only for this pass - jog starts/stops/pivots are Phase 3, not wired yet.
+@export var gait_blend_speed: float = 6.0
+var gait_blend: float = 0.0
+
 var weapon_r_upper_arm_mod: CopyTransformModifier3D
 var weapon_r_hand_mod: CopyTransformModifier3D
 var lh_weapon_ik_mod: TwoBoneIK3D
@@ -160,8 +171,19 @@ func _process(delta: float) -> void:
 	turn_in_place = animation_tree.get("parameters/TIP/active") and !(direction != Vector3.ZERO)
 	root_motion(delta, true)
 	handle_strafe_animation(delta)
+	handle_gait(delta)
 	handle_turn_in_place(delta)
 	_update_tip_body_rotation()
+
+
+## Smoothly blends the AnimationTree's Gait node toward jogging while [sprint] is
+## held, walking when it's not. Doesn't touch movement speed directly - root
+## motion already reads whatever pose Gait outputs, so blending toward the jog
+## clips' larger per-frame translation is what actually speeds the body up.
+func handle_gait(delta):
+	var target_gait: float = 1.0 if Input.is_action_pressed("sprint") else 0.0
+	gait_blend = move_toward(gait_blend, target_gait, gait_blend_speed * delta)
+	animation_tree.set("parameters/Gait/blend_amount", gait_blend)
 
 
 ## See tip_* vars' doc comment above for the full explanation. Must run after
@@ -241,7 +263,7 @@ func _physics_process(delta: float) -> void:
 func _handle_input_direction(_delta: float):
 	input_dir = Input.get_vector("right", "left", "backward", "forward")
 	direction = Vector3(input_dir.x, 0, input_dir.y)
-	
+
 	if camera_target:
 		camera_rotation = camera_target.global_transform.basis.get_euler().y
 		direction = direction.rotated(Vector3.UP, camera_rotation).normalized()
@@ -249,7 +271,7 @@ func _handle_input_direction(_delta: float):
 func _handle_rotation(delta):
 	if not camera_target:
 		return
-	
+
 	if direction != Vector3.ZERO:
 		if is_strafing:
 			rotation.y = lerp_angle(rotation.y, camera_rotation, delta * turn_speed)
@@ -271,7 +293,7 @@ func root_motion(delta, enabled: bool):
 func angle_rotation():
 	camera_rotation = camera_target.global_transform.basis.get_euler().y
 	var cam_direction = Vector3.BACK.rotated(Vector3.UP, camera_rotation)
-	var forward_direction = global_transform.basis.z.normalized() 
+	var forward_direction = global_transform.basis.z.normalized()
 
 	if is_strafing:
 		cam_angle_diff = rad_to_deg(forward_direction.signed_angle_to(cam_direction, Vector3.UP))
@@ -289,6 +311,10 @@ func handle_strafe_animation(delta):
 	currentspeed = currentspeed.move_toward(-targetspeed, strafe_acceleration * delta)
 	strafe_input = Vector2(currentspeed.x, -currentspeed.y)
 	animation_tree.set("parameters/WALK/blend_position", strafe_input)
+	# JOG mirrors WALK's 9-point directional layout one-for-one (see the AnimationTree
+	# resource), so it tracks the same input - only the Gait blend_amount (set in
+	# handle_gait()) decides which one is actually audible in the final pose.
+	animation_tree.set("parameters/JOG/blend_position", strafe_input)
 
 
 func handle_turn_in_place(_delta):
@@ -308,4 +334,3 @@ func handle_turn_in_place(_delta):
 				elif cam_angle_diff <= -70:
 					animation_tree.set("parameters/TIP Transition/transition_request", "right")
 					animation_tree.set("parameters/TIP/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
-	
