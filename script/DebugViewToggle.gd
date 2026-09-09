@@ -6,16 +6,16 @@ extends Camera3D
 ## double-cycle.
 ##
 ## Reads the FPS camera's own FINAL transform each frame -- after
-## FPSCamera.gd has already written this frame's look rotation onto it -- and
+## LookController.gd has already written this frame's look rotation onto it -- and
 ## parks a simple chase-cam offset behind and above it, then looks at the eye
 ## point. Because it derives the view direction from that already-solved
 ## transform it inherits the exact look direction with no yaw/pitch
 ## convention guessing of its own. Purely additive: reads fps_view every
-## frame, never writes to it or to anything Player.gd/FPSCamera.gd depend on,
+## frame, never writes to it or to anything Player.gd/LookController.gd depend on,
 ## except toggling which camera is `current` on V.
 ##
 ## Deliberately not built on NewTPSCamera.gd/Camera -- that node handles its
-## own look input and would double-count against FPSCamera's look state.
+## own look input and would double-count against LookController's look state.
 ## This is a lightweight, read-only observer, not a second controller.
 
 @export var fps_view: Camera3D

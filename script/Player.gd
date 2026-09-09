@@ -5,7 +5,7 @@ const SPEED = 5.0
 const JUMP_VELOCITY = 4.5
 
 @export var animation_tree: AnimationTree
-@export var camera_target: Node3D
+@export var look_controller: Node3D
 var is_strafing: bool = true
 var turn_speed: float = 8.0
 var gravity = 9.8
@@ -364,12 +364,12 @@ func _handle_input_direction(_delta: float):
 	input_dir = Input.get_vector("right", "left", "backward", "forward")
 	direction = Vector3(input_dir.x, 0, input_dir.y)
 
-	if camera_target:
-		camera_rotation = camera_target.global_transform.basis.get_euler().y
+	if look_controller:
+		camera_rotation = look_controller.global_transform.basis.get_euler().y
 		direction = direction.rotated(Vector3.UP, camera_rotation).normalized()
 
 func _handle_rotation(delta):
-	if not camera_target:
+	if not look_controller:
 		return
 
 	if direction != Vector3.ZERO:
@@ -391,7 +391,9 @@ func root_motion(delta, enabled: bool):
 	set_quaternion(get_quaternion() * root_rotation)
 
 func angle_rotation():
-	camera_rotation = camera_target.global_transform.basis.get_euler().y
+	if not look_controller:
+		return
+	camera_rotation = look_controller.global_transform.basis.get_euler().y
 	var cam_direction = Vector3.BACK.rotated(Vector3.UP, camera_rotation)
 	var forward_direction = global_transform.basis.z.normalized()
 

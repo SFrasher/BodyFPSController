@@ -138,7 +138,8 @@ blend_point_8/pos = Vector2(-0.5, -0.5)
 sync = true
 
 [resource]
-nodes/output/position = Vector2(1480, 240)
+graph_offset = Vector2(541.47107, 124.38016)
+nodes/output/position = Vector2(1720, 220)
 nodes/Animation/node = SubResource("AnimationNodeAnimation_x1tcm")
 nodes/Animation/position = Vector2(640, 720)
 nodes/FingersBlend2/node = SubResource("AnimationNodeBlend2_npir4")

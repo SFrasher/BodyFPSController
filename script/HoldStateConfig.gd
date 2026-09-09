@@ -41,7 +41,7 @@ class_name HoldStateConfig
 @export var use_spine_aim_ik: bool = false
 
 ## Which target the spine chain above aims at, when use_spine_aim_ik is on.
-## false (armed): TargetPivot/SpineTargetWeaponAim, driven by FPSCamera.gd
+## false (armed): TargetPivot/SpineTargetWeaponAim, driven by LookController.gd
 ## from both camera pitch AND yaw (clamped cam_angle_diff) - correct for
 ## aiming a weapon down sights, torso rotates to track the aim point. Note
 ## this target's local transform (relative to TargetPivot) carries a baked
@@ -50,7 +50,7 @@ class_name HoldStateConfig
 ## confirmed 2026-09-04 by decomposing its basis (clean (0,-33,0) Euler, no
 ## X/Z component). That offset is specific to holding a weapon and must NOT
 ## be reused for a plain look-target.
-## true (unarmed): PitchPivot/SpineTargetPitchOnly, driven by FPSCamera.gd
+## true (unarmed): PitchPivot/SpineTargetPitchOnly, driven by LookController.gd
 ## from pitch ONLY - PitchPivot's yaw is never written so it always points
 ## straight along the body's own forward, AND SpineTargetPitchOnly itself
 ## has an IDENTITY local rotation (same position offset as

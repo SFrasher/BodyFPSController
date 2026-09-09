@@ -1,7 +1,12 @@
 extends Node3D
 ## CHECKPOINT - verbatim copy of FPSCamera.gd before the Step 1 stabilization
-## change (rotation decoupling). Not attached to any node. Restore by copying
-## this back over res://script/FPSCamera.gd if Step 1 needs to be reverted.
+## change (rotation decoupling). Not attached to any node.
+##
+## 2026-09-07: the live script was renamed FPSCamera.gd -> LookController.gd
+## and its follow_target export -> body (see project notes). This backup was
+## NOT updated to match - it's a historical snapshot. To restore Step 0,
+## copy this over res://script/LookController.gd and rename follow_target
+## to body (and re-wire the LookController node's Body export in the editor).
 
 @export var target_pivot: Marker3D
 @export var follow_target: Node3D

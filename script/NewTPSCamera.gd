@@ -33,10 +33,10 @@ var aim_speed: float = 500.0
 
 
 func _ready():
-	# Guarded: this camera is disabled (visible=false) while FPSCamera.gd is
+	# Guarded: this camera is disabled (visible=false) while LookController.gd is
 	# active. Without this check, capturing the mouse here on every _ready()
 	# (which still fires even though process_mode=DISABLED stops the rest of
-	# this script) fights with FPSCamera's own capture call, and in headless/
+	# this script) fights with LookController's own capture call, and in headless/
 	# test environments without a real window it throws a X11 "NO GRAB" error
 	# that pauses the debugger. Re-enabling this camera (visible=true) restores
 	# the original behavior untouched.
