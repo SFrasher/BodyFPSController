@@ -5,7 +5,7 @@
 [ext_resource type="AnimationLibrary" uid="uid://dq0g34vjontmo" path="res://AnimLib/UUS.tres" id="3_bxj48"]
 [ext_resource type="AnimationLibrary" uid="uid://tn3wynrwt1h" path="res://AnimLib/Global.tres" id="3_keies"]
 [ext_resource type="Script" uid="uid://b3bgscwjhnpdx" path="res://script/NewTPSCamera.gd" id="3_kisug"]
-[ext_resource type="Script" uid="uid://bswkeh1unxacb" path="res://script/FPSCamera.gd" id="4_fwxjn"]
+[ext_resource type="Script" uid="uid://yhx62btur56w" path="res://script/LookController.gd" id="4_fwxjn"]
 [ext_resource type="AnimationNodeBlendTree" uid="uid://bx5136pdcbqk7" path="res://AnimationTree/Strafe_controller_with_tip.tres" id="4_npir4"]
 [ext_resource type="Script" uid="uid://bqlbyqiahbjd3" path="res://script/DebugViewToggle.gd" id="5_7l5dv"]
 [ext_resource type="Script" uid="uid://byolxvqw3b1jq" path="res://script/DebugViewFront.gd" id="6_b304x"]
@@ -669,10 +669,10 @@ height = 0.05
 radius = 0.4
 height = 1.8
 
-[node name="Player" type="CharacterBody3D" unique_id=421281082 node_paths=PackedStringArray("animation_tree", "camera_target")]
+[node name="Player" type="CharacterBody3D" unique_id=421281082 node_paths=PackedStringArray("animation_tree", "look_controller")]
 script = ExtResource("1_kisug")
 animation_tree = NodePath("AnimationTree")
-camera_target = NodePath("FPSCamera")
+look_controller = NodePath("LookController")
 
 [node name="Model" type="Node3D" parent="." unique_id=365254571]
 
@@ -1460,12 +1460,12 @@ mesh = SubResource("SphereMesh_xwdqq")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_g3qns")
 
-[node name="FPSCamera" type="Node3D" parent="." unique_id=1998510334 node_paths=PackedStringArray("target_pivot", "pitch_pivot", "follow_target", "skeleton", "camera")]
+[node name="LookController" type="Node3D" parent="." unique_id=1998510334 node_paths=PackedStringArray("target_pivot", "pitch_pivot", "body", "skeleton", "camera")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.62, 0.21820015)
 script = ExtResource("4_fwxjn")
 target_pivot = NodePath("../TargetPivot")
 pitch_pivot = NodePath("../PitchPivot")
-follow_target = NodePath("..")
+body = NodePath("..")
 skeleton = NodePath("../Model/GeneralSkeleton")
 camera = NodePath("../Model/GeneralSkeleton/HeadBoneAttachment3D/Camera3D")
 
