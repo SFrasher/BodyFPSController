@@ -1,98 +1,61 @@
 extends CharacterBody3D
 
-const SPEED = 5.0
-const JUMP_VELOCITY = 4.5
-
+## Resources
 @export var animation_tree: AnimationTree
 @export var look_controller: Node3D
-@export var turn_speed: float = 0.0
-var gravity = 9.8
+@export var armed_state: HoldStateConfig = preload("res://HoldStates/armed_state.tres") # Armed stance config
+@export var unarmed_state: HoldStateConfig = preload("res://HoldStates/unarmed_state.tres") # Unarmed stance config
+@export var current_hold_state: HoldStateConfig # Currently active hold state
 
-#root motion parameter
-var root_velocity = Vector3()
-var root_motion_speed_multiplier: float = 1.0
+## Direction
+var input_dir: Vector2 # Stores raw keyboard/gamepad input (-1 to 1 on each axis)
+var direction: Vector3 # Stores camera-rotated direction (input mapped to world space relative to camera look)
 
-### PLAYER DIRECTION
-var input_dir: Vector2
-var direction: Vector3
+## Motion
+var root_velocity = Vector3() # Stores velocity from anim root motion
+@export var root_motion_speed_multiplier: float = 1.0 # Modify anim speed
+@export var turn_speed: float = 0.0 # Modify body rotation toward camera during movement
+@export var gait_blend_speed: float = 6.0 # How fast gait transitions between walk/jog
+var gait_blend: float = 0.0 # Current gait blend amount (0=walk, 1=jog)
 
-var currentspeed = Vector2.ZERO
-var strafe_acceleration = 3
-var targetspeed
-var strafe_input:Vector2 = Vector2.ZERO
-var camera_rotation: float = 0.0
+## Strafe
+var currentspeed = Vector2.ZERO # Current animation blend space values (X/Y); lerps toward targetspeed to smooth animation transitions
+var strafe_acceleration = 3 # Controls how quickly currentspeed reaches targetspeed; prevents animation pops when input direction changes suddenly
+var targetspeed # Desired animation blend space values we're accelerating toward based on player input direction
+var strafe_input: Vector2 = Vector2.ZERO # Normalized player input (-1 to 1 on each axis); fed into animation tree after camera rotation
+var camera_rotation: float = 0.0 # Camera's yaw angle in degrees; used to rotate input direction to camera-relative coordinates
 
-## Data-driven armed/unarmed switch. See HoldStateConfig.gd and
-## ik-and-player-conversion-map.md's "unarmed conversion" section for why
-## these specific modifiers are the ones that get gated. Two states for now;
-## torch (or anything else) is a third .tres later, no new code branches.
-@export var armed_state: HoldStateConfig = preload("res://HoldStates/armed_state.tres")
-@export var unarmed_state: HoldStateConfig = preload("res://HoldStates/unarmed_state.tres")
-@export var current_hold_state: HoldStateConfig
+## Crouch
+@export var crouch_height: float = 0.35 # How far hips drop when crouching
+@export var crouch_transition_speed: float = 1.5 # Crouch transition easing speed
+var is_crouching: bool = false # Whether crouch is currently active
+var crouch_amount: float = 0.0 # Current crouch blend (0 to crouch_height)
+var crouch_leg_modifier: Node # Modifier chain for crouch IK
+var l_leg_ik_mod: TwoBoneIK3D # Left leg IK solver
+var r_leg_ik_mod: TwoBoneIK3D # Right leg IK solver
+var l_foot_rot_mod: CopyTransformModifier3D # Left foot rotation modifier
+var r_foot_rot_mod: CopyTransformModifier3D # Right foot rotation modifier
+var weapon_r_upper_arm_mod: CopyTransformModifier3D # Right upper arm weapon modifier
+var weapon_r_hand_mod: CopyTransformModifier3D # Right hand weapon modifier
+var lh_weapon_ik_mod: TwoBoneIK3D # Left hand weapon IK solver
+var lh_weapon_copy_mod: CopyTransformModifier3D # Left hand weapon copy modifier
+var weapon_mesh_node: Node3D # Weapon mesh visibility control
+var spine_ccdik_mod: CCDIK3D # Spine CCDIK aiming solver
+var spine_copy_mod: CopyTransformModifier3D # Spine rotation copy modifier
+var spine_twist_mod: BoneTwistDisperser3D # Spine twist disperser for aiming
 
-## Gait switching between WALK and JOG. Hold [sprint] (already bound to Shift /
-## joypad button 1 in the input map, previously unused) to jog; release for walk.
-## Smoothed rather than snapped straight to 0/1 so the crossfade doesn't pop - the
-## AnimationTree's new "Gait" Blend2 node (WALK on input 0, JOG on input 1) has
-## sync = true, so Godot keeps both blend spaces advancing together even while one
-## has zero weight, which is what keeps the transition from skating. See the
-## Descent-scoped roadmap's "Phase 2 - jog core" for why this exists. Steady-state
-## loop only for this pass - jog starts/stops/pivots are Phase 3, not wired yet.
-@export var gait_blend_speed: float = 6.0
-var gait_blend: float = 0.0
+var cam_angle_diff = float() # Angle between body facing and camera direction
+var turn_in_place: bool = false # Turn-in-place animation active
+var tip_timer: float = 0.0 # Turn-in-place cooldown timer
+var tip_cool_down: float = 0.5 # Minimum time between turn-in-place triggers
 
-## Procedural crouch (Phase 1). Toggle [crouch] (already bound to Ctrl in the
-## input map, previously unused) to crouch/stand. Hips lowers by
-## crouch_height while two leg TwoBoneIK3D modifiers (LLegTwoBoneIK3D/
-## RLegTwoBoneIK3D under GeneralSkeleton) hold the feet planted at their
-## current animated position, bending the knees - so the normal walk/jog
-## gait still plays underneath, just bent and lowered, rather than a canned
-## crouch pose. No move-speed penalty, no ceiling-clearance gating this pass
-## - see the Crouch design write-up in the project's Claude-project notes.
-## Exported rather than hardcoded per the reusable-system tunables rule.
-@export var crouch_height: float = 0.35
-@export var crouch_transition_speed: float = 1.5
-var is_crouching: bool = false
-var crouch_amount: float = 0.0
-var crouch_leg_modifier: Node
-var l_leg_ik_mod: TwoBoneIK3D
-var r_leg_ik_mod: TwoBoneIK3D
-var l_foot_rot_mod: CopyTransformModifier3D
-var r_foot_rot_mod: CopyTransformModifier3D
-
-var weapon_r_upper_arm_mod: CopyTransformModifier3D
-var weapon_r_hand_mod: CopyTransformModifier3D
-var lh_weapon_ik_mod: TwoBoneIK3D
-var lh_weapon_copy_mod: CopyTransformModifier3D
-var weapon_mesh_node: Node3D
-var spine_ccdik_mod: CCDIK3D
-var spine_copy_mod: CopyTransformModifier3D
-var spine_twist_mod: BoneTwistDisperser3D
-var cam_angle_diff = float()
-var turn_in_place: bool = false
-var tip_timer: float = 0.0
-var tip_cool_down: float = 0.5
-
-## Turn-in-place body rotation. The TIP clips (A_N_TurnInPlace_{L,R}-090) have
-## no %GeneralSkeleton:Root track, so AnimationTree's root motion is zero for
-## them - only the Hips bone (parented directly to Root) carries the real
-## turn, as a full local rotation. Each frame the animation plays, this reads
-## how much Hips actually rotated since last frame and applies that same
-## delta to the body's real transform, then freezes Hips back to its pre-turn
-## pose so the rotation only ever shows up once (on the body), not doubled
-## onto the bone. Requires Player.process_priority above AnimationTree's
-## default (0) so this reads/overwrites Hips AFTER animation applies this
-## frame's pose, not before - set in _ready().
-var tip_skeleton: Skeleton3D
-var tip_hips_idx: int = -1
-var tip_prev_raw_hips_rot: Quaternion = Quaternion.IDENTITY
-var tip_frozen_hips_rot: Quaternion = Quaternion.IDENTITY
-var tip_was_active: bool = false
-## True only once the OneShot has reached full weight (past its fade-in,
-## before its fade-out) and a tracking baseline has been captured there.
-## Rotation deltas are only ever summed onto the body while this is true -
-## see _update_tip_body_rotation()'s doc comment for why.
-var tip_was_tracking: bool = false
+# Turn In Place
+var tip_skeleton: Skeleton3D # GeneralSkeleton node; reads/writes Hips rotation for turn-in-place
+var tip_hips_idx: int = -1 # Bone index of Hips; -1 if not found
+var tip_prev_raw_hips_rot: Quaternion = Quaternion.IDENTITY # Hips rotation from previous frame
+var tip_frozen_hips_rot: Quaternion = Quaternion.IDENTITY # Hips rotation to hold while turn-in-place plays
+var tip_was_active: bool = false # Whether turn-in-place was active last frame
+var tip_was_tracking: bool = false # Whether we're actively tracking Hips rotation deltas
 
 
 func _ready() -> void:
@@ -341,10 +304,6 @@ func _physics_process(delta: float) -> void:
 	_handle_input_direction(delta)
 	_handle_rotation(delta)
 	angle_rotation()
-
-	# Add the gravity.
-	if not is_on_floor():
-		velocity.y -= gravity * delta
 
 	velocity = Vector3(root_velocity.x, velocity.y, root_velocity.z)
 	move_and_slide()
