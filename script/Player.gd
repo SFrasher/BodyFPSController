@@ -1,12 +1,10 @@
 extends CharacterBody3D
 
-
 const SPEED = 5.0
 const JUMP_VELOCITY = 4.5
 
 @export var animation_tree: AnimationTree
 @export var look_controller: Node3D
-var is_strafing: bool = true
 var turn_speed: float = 8.0
 var gravity = 9.8
 
@@ -373,10 +371,7 @@ func _handle_rotation(delta):
 		return
 
 	if direction != Vector3.ZERO:
-		if is_strafing:
-			rotation.y = lerp_angle(rotation.y, camera_rotation, delta * turn_speed)
-		else:
-			rotation.y = lerp_angle(rotation.y, atan2(direction.x, direction.z), turn_speed * delta)
+		rotation.y = lerp_angle(rotation.y, camera_rotation, delta * turn_speed)
 
 
 func root_motion(delta, enabled: bool):
@@ -397,14 +392,7 @@ func angle_rotation():
 	var cam_direction = Vector3.BACK.rotated(Vector3.UP, camera_rotation)
 	var forward_direction = global_transform.basis.z.normalized()
 
-	if is_strafing:
-		cam_angle_diff = rad_to_deg(forward_direction.signed_angle_to(cam_direction, Vector3.UP))
-	else:
-		if direction != Vector3.ZERO:
-			cam_angle_diff = 0.0
-		else:
-			if tip_timer > tip_cool_down:
-				cam_angle_diff = rad_to_deg(forward_direction.signed_angle_to(cam_direction, Vector3.UP))
+	cam_angle_diff = rad_to_deg(forward_direction.signed_angle_to(cam_direction, Vector3.UP))
 
 
 func handle_strafe_animation(delta):

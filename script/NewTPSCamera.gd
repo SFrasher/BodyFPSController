@@ -92,15 +92,7 @@ func _physics_process(delta):
 
 
 	##weapon aim pivot
-	if follow_target.is_strafing:
-		target_pivot.rotation_degrees.x = move_toward(target_pivot.rotation_degrees.x, rad_to_deg(pitch) + target_pivot_x_offset, aim_speed * delta)
-	else:
-		if follow_target.direction != Vector3.ZERO:
-			target_pivot.rotation_degrees.x = move_toward(target_pivot.rotation_degrees.x, rad_to_deg(pitch) + target_pivot_x_offset, aim_speed * delta)
-		else:
-			target_pivot.rotation_degrees.x = move_toward(target_pivot.rotation_degrees.x, rad_to_deg(pitch) + target_pivot_x_offset, aim_speed * delta)
-
-	target_pivot.rotation_degrees.y = move_toward(target_pivot.rotation_degrees.y, clampf(follow_target.cam_angle_diff, -90, 90), aim_speed * delta)
+	target_pivot.rotation_degrees.x = move_toward(target_pivot.rotation_degrees.x, rad_to_deg(pitch) + target_pivot_x_offset, aim_speed * delta)
 
 
 func cam_yaw_rpm(delta):
