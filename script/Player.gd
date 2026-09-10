@@ -5,7 +5,7 @@ const JUMP_VELOCITY = 4.5
 
 @export var animation_tree: AnimationTree
 @export var look_controller: Node3D
-var turn_speed: float = 8.0
+@export var turn_speed: float = 0.0
 var gravity = 9.8
 
 #root motion parameter
@@ -21,14 +21,6 @@ var strafe_acceleration = 3
 var targetspeed
 var strafe_input:Vector2 = Vector2.ZERO
 var camera_rotation: float = 0.0
-
-## 'True' to enable Turn In Place. Re-enabled 2026-09-04 with the Hips delta-
-## extraction fix below - the TIP clips carry no root motion track, so without
-## this the body itself never turns, only the mesh (via the Hips bone). See
-## _update_tip_body_rotation() and project notes' "Turn-in-place body rotation"
-## section. Needs real play verification, not just tool-simulated testing -
-## that's exactly what was skipped last time this was attempted.
-@export var enable_tip: bool = true
 
 ## Data-driven armed/unarmed switch. See HoldStateConfig.gd and
 ## ik-and-player-conversion-map.md's "unarmed conversion" section for why
@@ -408,10 +400,6 @@ func handle_strafe_animation(delta):
 
 
 func handle_turn_in_place(_delta):
-	#Handle turn in place
-	if !enable_tip:
-		return
-
 	if direction != Vector3.ZERO:
 		animation_tree.set("parameters/TIP/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
 	else:
