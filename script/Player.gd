@@ -25,48 +25,35 @@ var targetspeed # Desired animation blend space values we're accelerating toward
 var strafe_input: Vector2 = Vector2.ZERO # Normalized player input (-1 to 1 on each axis); fed into animation tree after camera rotation
 var camera_rotation: float = 0.0 # Camera's yaw angle in degrees; used to rotate input direction to camera-relative coordinates
 
-## Hold State
-var weapon_r_upper_arm_mod: CopyTransformModifier3D # Right upper arm weapon modifier
-var weapon_r_hand_mod: CopyTransformModifier3D # Right hand weapon modifier
-var lh_weapon_ik_mod: TwoBoneIK3D # Left hand weapon IK solver
-var lh_weapon_copy_mod: CopyTransformModifier3D # Left hand weapon copy modifier
-var weapon_mesh_node: Node3D # Weapon mesh visibility control
-var spine_ccdik_mod: CCDIK3D # Spine CCDIK aiming solver
-var spine_copy_mod: CopyTransformModifier3D # Spine rotation copy modifier
-var spine_twist_mod: BoneTwistDisperser3D # Spine twist disperser for aiming
+## Hold State - node references and apply logic live in HoldStateController
+## (script/HoldStateController.gd) instead of here. It's a plain object
+## Player.gd instantiates and drives, not a scene node, so pulling this out
+## didn't need any Player.tscn changes. armed_state/unarmed_state/
+## current_hold_state stay exported here since this is the node the
+## Inspector actually shows.
+var hold_state := HoldStateController.new()
 
+## Turn In Place - all other state and logic live in TurnInPlaceController
+## (script/TurnInPlaceController.gd) for the same reason as hold_state
+## above. cam_angle_diff stays here (not moved into the controller) because
+## LookController.gd reads it externally as body.cam_angle_diff for its
+## neck-turn clamp - don't rename or relocate it without updating that too.
 var cam_angle_diff = float() # Angle between body facing and camera direction
-var turn_in_place: bool = false # Turn-in-place animation active
-var tip_timer: float = 0.0 # Turn-in-place cooldown timer
-var tip_cool_down: float = 0.5 # Minimum time between turn-in-place triggers
+var tip := TurnInPlaceController.new()
 
-# Turn In Place
-var tip_skeleton: Skeleton3D # GeneralSkeleton node; reads/writes Hips rotation for turn-in-place
-var tip_hips_idx: int = -1 # Bone index of Hips; -1 if not found
-var tip_prev_raw_hips_rot: Quaternion = Quaternion.IDENTITY # Hips rotation from previous frame
-var tip_frozen_hips_rot: Quaternion = Quaternion.IDENTITY # Hips rotation to hold while turn-in-place plays
-var tip_was_active: bool = false # Whether turn-in-place was active last frame
-var tip_was_tracking: bool = false # Whether we're actively tracking Hips rotation deltas
 
 func _ready() -> void:
 	add_to_group("player")
 	# Runs after AnimationTree's own (default-priority) update each frame - see
-	# the tip_* vars' doc comment above.
+	# TurnInPlaceController's doc comment for why this matters.
 	process_priority = 100
 	animation_tree.set("parameters/TIP TimeScale/scale", 1.4)
 	_register_uus_animation_library()
-	tip_skeleton = get_node_or_null("Model/GeneralSkeleton")
-	if tip_skeleton:
-		tip_hips_idx = tip_skeleton.find_bone("Hips")
-	weapon_r_upper_arm_mod = get_node_or_null("Model/GeneralSkeleton/WeaponCopyTransformModifier3D")
-	weapon_r_hand_mod = get_node_or_null("Model/GeneralSkeleton/WeaponCopyTransformModifier3D2")
-	lh_weapon_ik_mod = get_node_or_null("Model/GeneralSkeleton/LHTwoBoneIK3D")
-	lh_weapon_copy_mod = get_node_or_null("Model/GeneralSkeleton/LHCopyTransformModifier3D2")
-	weapon_mesh_node = get_node_or_null("Model/GeneralSkeleton/RShoulderBoneAttachment3D2/WeaponHolder/Gun")
-	spine_ccdik_mod = get_node_or_null("Model/GeneralSkeleton/SpineCCDIK3D")
-	spine_copy_mod = get_node_or_null("Model/GeneralSkeleton/SpineCopyTransformModifier3D")
-	spine_twist_mod = get_node_or_null("Model/GeneralSkeleton/SpineBoneTwistDisperser3D")
-	_apply_hold_state(current_hold_state if current_hold_state else unarmed_state)
+	tip.setup(self)
+	hold_state.setup(self, animation_tree)
+	var initial_state := current_hold_state if current_hold_state else unarmed_state
+	hold_state.apply_state(initial_state)
+	current_hold_state = initial_state
 
 
 ## Registers the baked UUS animation library on AnimationPlayer at runtime
@@ -84,58 +71,23 @@ func _register_uus_animation_library() -> void:
 		anim_player.add_animation_library("UUS", uus_lib)
 
 
-## Applies a HoldStateConfig: gates the armed-only modifiers, sets the
-## rifle-grip finger blend, and shows/hides the gun mesh. Disabling/enabling
-## these (never deleting the nodes) is deliberate - both states stay
-## reachable and both survive a scene save. See ik-and-player-conversion-
-## map.md's "unarmed conversion" section for why these are the right nodes.
-func _apply_hold_state(state: HoldStateConfig) -> void:
-	if state == null:
-		return
-	if weapon_r_upper_arm_mod:
-		weapon_r_upper_arm_mod.active = state.use_right_arm_weapon_ik
-	if weapon_r_hand_mod:
-		weapon_r_hand_mod.active = state.use_right_arm_weapon_ik
-	if lh_weapon_ik_mod:
-		lh_weapon_ik_mod.active = state.use_left_arm_weapon_ik
-	if lh_weapon_copy_mod:
-		lh_weapon_copy_mod.active = state.use_left_arm_weapon_ik
-	# Both the CCDIK target and the CopyTransformModifier reference point at
-	# whichever pivot the state calls for - full pitch+yaw aim gimbal
-	# (TargetPivot/SpineTargetWeaponAim) when armed, pitch-only
-	# (PitchPivot/SpineTargetPitchOnly) when unarmed. Paths are relative to
-	# each modifier's own node, matching what's baked into Player.tscn.
-	var spine_target_path := NodePath("../../../PitchPivot/SpineTargetPitchOnly" if state.spine_pitch_only else "../../../TargetPivot/SpineTargetWeaponAim")
-	if spine_ccdik_mod:
-		spine_ccdik_mod.active = state.use_spine_aim_ik
-		spine_ccdik_mod.set("settings/0/target_node", spine_target_path)
-	if spine_copy_mod:
-		spine_copy_mod.active = state.use_spine_aim_ik
-		spine_copy_mod.set("settings/0/reference_node", spine_target_path)
-	if spine_twist_mod:
-		spine_twist_mod.active = state.use_spine_aim_ik
-	animation_tree.set("parameters/FingersBlend2/blend_amount", state.finger_grip_blend)
-	if weapon_mesh_node:
-		weapon_mesh_node.visible = state.weapon_visible
-	current_hold_state = state
-
-
 ## Debug-only toggle until a real equip/pickup system exists. Same pattern as
 ## DebugViewToggle.gd's V key: raw keycode check in _unhandled_input, no
 ## input-map action needed for a temporary dev toggle.
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_B:
 		var next_state := unarmed_state if current_hold_state == armed_state else armed_state
-		_apply_hold_state(next_state)
+		hold_state.apply_state(next_state)
+		current_hold_state = next_state
 
 
 func _process(delta: float) -> void:
-	turn_in_place = animation_tree.get("parameters/TIP/active") and !(direction != Vector3.ZERO)
+	tip.update_active_state(animation_tree, direction)
 	root_motion(delta, true)
 	handle_strafe_animation(delta)
 	handle_gait(delta)
-	handle_turn_in_place(delta)
-	_update_tip_body_rotation()
+	tip.handle_trigger(animation_tree, cam_angle_diff, direction)
+	tip.update_body_rotation(self, animation_tree)
 
 
 ## Smoothly blends the AnimationTree's Gait node toward jogging while [sprint] is
@@ -148,71 +100,13 @@ func handle_gait(delta):
 	animation_tree.set("parameters/Gait/blend_amount", gait_blend)
 
 
-## See tip_* vars' doc comment above for the full explanation. Must run after
-## AnimationTree has applied this frame's pose (Player.process_priority = 100
-## guarantees that), so tip_skeleton.get_bone_pose_rotation() reads the
-## animation's real, current-frame Hips rotation.
-func _update_tip_body_rotation() -> void:
-	if tip_hips_idx < 0 or tip_skeleton == null:
-		return
-	var tip_active: bool = animation_tree.get("parameters/TIP/active")
-	if tip_active:
-		var current_raw := tip_skeleton.get_bone_pose_rotation(tip_hips_idx)
-		if not tip_was_active:
-			# Turn just started this frame - capture the baseline, no delta yet.
-			tip_frozen_hips_rot = current_raw
-			tip_prev_raw_hips_rot = current_raw
-			tip_was_tracking = false
-		else:
-			# AnimationNodeOneShot (mix_mode = BLEND) crossfades with whatever
-			# is underneath (idle) during its fade_in/fade_out windows, so the
-			# live skeleton pose there is a BLEND, not the raw clip - reading a
-			# delta from it during either fade means capturing the fade's own
-			# blend-toward-idle motion as if it were more turning. That's what
-			# made the body visibly unwind back toward its start facing at the
-			# end of every turn (found 2026-09-04 via frame-by-frame logging:
-			# Hips' raw pose smoothly reverted to near-identity over exactly
-			# fadeout_time while active was still true). Only sum the delta
-			# while at full weight - past fade-in, before fade-out.
-			var fade_in_remaining: float = animation_tree.get("parameters/TIP/fade_in_remaining")
-			var fade_out_remaining: float = animation_tree.get("parameters/TIP/fade_out_remaining")
-			var at_full_weight: bool = fade_in_remaining <= 0.0 and fade_out_remaining <= 0.0
-			if at_full_weight:
-				if tip_was_tracking:
-					var delta_rot: Quaternion = tip_prev_raw_hips_rot.inverse() * current_raw
-					# Hips carries real mocap weight-shift/bounce alongside the
-					# turn - a full quaternion multiply would bake that tilt/
-					# roll onto the body permanently. Swing-twist decompose
-					# delta_rot around UP and apply only the twist (yaw)
-					# component; the body should turn, not tip over.
-					var twist_axis := Vector3(delta_rot.x, delta_rot.y, delta_rot.z).project(Vector3.UP)
-					var twist := Quaternion(twist_axis.x, twist_axis.y, twist_axis.z, delta_rot.w).normalized()
-					rotation.y += 2.0 * atan2(twist.y, twist.w)
-				else:
-					# Fade-in just finished - start tracking fresh from here so
-					# the fade-in's own damped/blended motion isn't counted.
-					pass
-				tip_prev_raw_hips_rot = current_raw
-				tip_was_tracking = true
-			# else: fading in or out - don't track, don't update
-			# tip_prev_raw_hips_rot (Hips stays frozen below regardless, so
-			# there's nothing to desync when tracking resumes).
-		tip_skeleton.set_bone_pose_rotation(tip_hips_idx, tip_frozen_hips_rot)
-		tip_was_active = true
-	else:
-		tip_was_active = false
-		tip_was_tracking = false
-
-
 func _physics_process(delta: float) -> void:
-	if direction != Vector3.ZERO:
-		tip_timer = 0.0
-	else:
-		tip_timer += delta
+	tip.update_timer(delta, direction != Vector3.ZERO)
 
 	_handle_input_direction(delta)
 	_handle_rotation(delta)
-	angle_rotation()
+	if look_controller:
+		cam_angle_diff = tip.compute_cam_angle(self, look_controller)
 
 	velocity = Vector3(root_velocity.x, velocity.y, root_velocity.z)
 	move_and_slide()
@@ -245,15 +139,6 @@ func root_motion(delta, enabled: bool):
 	var root_rotation =  animation_tree.get_root_motion_rotation() *2.0
 	set_quaternion(get_quaternion() * root_rotation)
 
-func angle_rotation():
-	if not look_controller:
-		return
-	camera_rotation = look_controller.global_transform.basis.get_euler().y
-	var cam_direction = Vector3.BACK.rotated(Vector3.UP, camera_rotation)
-	var forward_direction = global_transform.basis.z.normalized()
-
-	cam_angle_diff = rad_to_deg(forward_direction.signed_angle_to(cam_direction, Vector3.UP))
-
 
 func handle_strafe_animation(delta):
 	#handle strafe blend
@@ -265,18 +150,3 @@ func handle_strafe_animation(delta):
 	# resource), so it tracks the same input - only the Gait blend_amount (set in
 	# handle_gait()) decides which one is actually audible in the final pose.
 	animation_tree.set("parameters/JOG/blend_position", strafe_input)
-
-
-func handle_turn_in_place(_delta):
-	if direction != Vector3.ZERO:
-		animation_tree.set("parameters/TIP/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
-	else:
-		if tip_timer > tip_cool_down:
-			if !turn_in_place:
-				if cam_angle_diff >= 60:
-					animation_tree.set("parameters/TIP Transition/transition_request", "left")
-					animation_tree.set("parameters/TIP/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
-
-				elif cam_angle_diff <= -70:
-					animation_tree.set("parameters/TIP Transition/transition_request", "right")
-					animation_tree.set("parameters/TIP/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
