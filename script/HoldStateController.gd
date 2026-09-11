@@ -1,13 +1,27 @@
 class_name HoldStateController
-extends RefCounted
+extends Node
 
-## Owns the weapon/spine SkeletonModifier3D references for the armed/unarmed
-## hold-state system and applies a HoldStateConfig resource's values onto
-## them. This is a plain object, not a scene node - Player.gd instantiates
-## and drives it directly (see Player.gd's `hold_state` var), so pulling
-## this logic out of Player.gd didn't require any Player.tscn changes.
+## Owns the armed/unarmed hold-state system end to end: which state is
+## active, the weapon/spine SkeletonModifier3D references, applying a
+## HoldStateConfig's values onto them, and the debug B-key toggle. A real
+## sibling node under Player in Player.tscn (not something Player.gd
+## instantiates), so Player.gd doesn't need to know anything about hold
+## state at all - it just needs to exist in the tree.
+##
+## animation_tree is pulled from the parent Player node at _ready() rather
+## than given its own @export NodePath here - Player.gd already has a
+## correctly-wired reference to it, and a Node-typed @export on a freshly
+## added node needs a node_paths=PackedStringArray(...) header in the .tscn
+## or it silently resolves to null (the exact bug that broke the old
+## procedural crouch - see crouch-root-cause-and-solution-ranking.md).
+## Reusing Player's own reference sidesteps that risk entirely.
+##
 ## See HoldStateConfig.gd and ik-and-player-conversion-map.md's "unarmed
-## conversion" section for why these are the right nodes to gate.
+## conversion" section for why these are the right modifiers to gate.
+
+@export var armed_state: HoldStateConfig = preload("res://HoldStates/armed_state.tres") # Armed stance config
+@export var unarmed_state: HoldStateConfig = preload("res://HoldStates/unarmed_state.tres") # Unarmed stance config
+@export var current_hold_state: HoldStateConfig # Currently active hold state
 
 var weapon_r_upper_arm_mod: CopyTransformModifier3D # Right upper arm weapon modifier
 var weapon_r_hand_mod: CopyTransformModifier3D # Right hand weapon modifier
@@ -21,10 +35,9 @@ var spine_twist_mod: BoneTwistDisperser3D # Spine twist disperser for aiming
 var animation_tree: AnimationTree
 
 
-## Resolves all the modifier node references relative to the player node.
-## Call once from Player.gd's _ready(), before apply_state().
-func setup(player: Node, tree: AnimationTree) -> void:
-	animation_tree = tree
+func _ready() -> void:
+	var player := get_parent()
+	animation_tree = player.animation_tree
 	weapon_r_upper_arm_mod = player.get_node_or_null("Model/GeneralSkeleton/WeaponCopyTransformModifier3D")
 	weapon_r_hand_mod = player.get_node_or_null("Model/GeneralSkeleton/WeaponCopyTransformModifier3D2")
 	lh_weapon_ik_mod = player.get_node_or_null("Model/GeneralSkeleton/LHTwoBoneIK3D")
@@ -33,6 +46,19 @@ func setup(player: Node, tree: AnimationTree) -> void:
 	spine_ccdik_mod = player.get_node_or_null("Model/GeneralSkeleton/SpineCCDIK3D")
 	spine_copy_mod = player.get_node_or_null("Model/GeneralSkeleton/SpineCopyTransformModifier3D")
 	spine_twist_mod = player.get_node_or_null("Model/GeneralSkeleton/SpineBoneTwistDisperser3D")
+	var initial_state := current_hold_state if current_hold_state else unarmed_state
+	apply_state(initial_state)
+	current_hold_state = initial_state
+
+
+## Debug-only toggle until a real equip/pickup system exists. Same pattern as
+## DebugViewToggle.gd's V key: raw keycode check in _unhandled_input, no
+## input-map action needed for a temporary dev toggle.
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_B:
+		var next_state := unarmed_state if current_hold_state == armed_state else armed_state
+		apply_state(next_state)
+		current_hold_state = next_state
 
 
 ## Applies a HoldStateConfig: gates the armed-only modifiers, sets the
@@ -40,8 +66,6 @@ func setup(player: Node, tree: AnimationTree) -> void:
 ## these (never deleting the nodes) is deliberate - both states stay
 ## reachable and both survive a scene save. See ik-and-player-conversion-
 ## map.md's "unarmed conversion" section for why these are the right nodes.
-## Player.gd owns `current_hold_state` (it's exported there for the
-## Inspector) - this function only applies values, it doesn't track state.
 func apply_state(state: HoldStateConfig) -> void:
 	if state == null:
 		return

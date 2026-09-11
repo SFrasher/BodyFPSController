@@ -3,9 +3,6 @@ extends CharacterBody3D
 ## Resources
 @export var animation_tree: AnimationTree
 @export var look_controller: Node3D
-@export var armed_state: HoldStateConfig = preload("res://HoldStates/armed_state.tres") # Armed stance config
-@export var unarmed_state: HoldStateConfig = preload("res://HoldStates/unarmed_state.tres") # Unarmed stance config
-@export var current_hold_state: HoldStateConfig # Currently active hold state
 
 ## Direction
 var input_dir: Vector2 # Stores raw keyboard/gamepad input (-1 to 1 on each axis)
@@ -25,19 +22,11 @@ var targetspeed # Desired animation blend space values we're accelerating toward
 var strafe_input: Vector2 = Vector2.ZERO # Normalized player input (-1 to 1 on each axis); fed into animation tree after camera rotation
 var camera_rotation: float = 0.0 # Camera's yaw angle in degrees; used to rotate input direction to camera-relative coordinates
 
-## Hold State - node references and apply logic live in HoldStateController
-## (script/HoldStateController.gd) instead of here. It's a plain object
-## Player.gd instantiates and drives, not a scene node, so pulling this out
-## didn't need any Player.tscn changes. armed_state/unarmed_state/
-## current_hold_state stay exported here since this is the node the
-## Inspector actually shows.
-var hold_state := HoldStateController.new()
-
 ## Turn In Place - all other state and logic live in TurnInPlaceController
-## (script/TurnInPlaceController.gd) for the same reason as hold_state
-## above. cam_angle_diff stays here (not moved into the controller) because
-## LookController.gd reads it externally as body.cam_angle_diff for its
-## neck-turn clamp - don't rename or relocate it without updating that too.
+## (script/TurnInPlaceController.gd). cam_angle_diff stays here (not moved
+## into the controller) because LookController.gd reads it externally as
+## body.cam_angle_diff for its neck-turn clamp - don't rename or relocate it
+## without updating that too.
 var cam_angle_diff = float() # Angle between body facing and camera direction
 var tip := TurnInPlaceController.new()
 
@@ -50,10 +39,6 @@ func _ready() -> void:
 	animation_tree.set("parameters/TIP TimeScale/scale", 1.4)
 	_register_uus_animation_library()
 	tip.setup(self)
-	hold_state.setup(self, animation_tree)
-	var initial_state := current_hold_state if current_hold_state else unarmed_state
-	hold_state.apply_state(initial_state)
-	current_hold_state = initial_state
 
 
 ## Registers the baked UUS animation library on AnimationPlayer at runtime
@@ -69,16 +54,6 @@ func _register_uus_animation_library() -> void:
 	var uus_lib := load("res://AnimLib/UUS.tres") as AnimationLibrary
 	if uus_lib:
 		anim_player.add_animation_library("UUS", uus_lib)
-
-
-## Debug-only toggle until a real equip/pickup system exists. Same pattern as
-## DebugViewToggle.gd's V key: raw keycode check in _unhandled_input, no
-## input-map action needed for a temporary dev toggle.
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_B:
-		var next_state := unarmed_state if current_hold_state == armed_state else armed_state
-		hold_state.apply_state(next_state)
-		current_hold_state = next_state
 
 
 func _process(delta: float) -> void:
