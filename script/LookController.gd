@@ -46,10 +46,10 @@ extends Node3D
 @export var mouse_sensitivity: float = 0.002
 @export var gamepad_sensitivity: float = 2.5
 ## Hard neck-turn limit, in degrees of cam_angle_diff (signed angle from body-
-## forward to camera-forward - matches Player.gd::handle_turn_in_place()'s TIP
-## fire thresholds). Kept as separate constants here rather than reading
-## Player.gd's, since those are hardcoded literals, not exported/shared state -
-## if those ever change, update these to match.
+## forward to camera-forward - matches LocomotionAnimator.gd's TIP fire
+## thresholds). Kept as separate constants here rather than reading those,
+## since those are hardcoded literals, not exported/shared state - if those
+## ever change, update these to match.
 @export var neck_clamp_positive_deg: float = 60.0
 @export var neck_clamp_negative_deg: float = -70.0
 ## Tiny overshoot so the corrected value lands just past the threshold
@@ -68,6 +68,12 @@ extends Node3D
 
 var yaw: float = 0.0
 var pitch: float = 0.0
+## Resolved from body's children at _ready() - not its own @export, since a
+## Node-typed @export needs a node_paths=PackedStringArray(...) header in
+## the .tscn or it silently resolves to null. cam_angle_diff lives on
+## LocomotionAnimator now, not directly on Player/body - see that script's
+## doc comment.
+var locomotion_animator: Node
 
 
 func _ready() -> void:
@@ -89,6 +95,7 @@ func _ready() -> void:
 		pitch_pivot.rotation_degrees = Vector3.ZERO
 	if body:
 		yaw = body.rotation.y
+		locomotion_animator = body.get_node_or_null("LocomotionAnimator")
 	# Connected in code rather than in the editor so this handler runs AFTER
 	# BoneAttachment3D's own skeleton_updated handler: by the time we overwrite
 	# the camera's basis, its parent has already been placed on the final solved
@@ -163,7 +170,7 @@ func _process(delta: float) -> void:
 	# Drive the aim gimbal. The body (and the weapon, whose IK targets hang off
 	# TargetPivot) still follows this through SpineCCDIK3D - only the camera has
 	# stopped taking its rotation from the result.
-	if target_pivot and body:
+	if target_pivot and body and locomotion_animator:
 		var t := 1.0 - exp(-aim_damping * delta)
 		target_pivot.rotation_degrees.x = lerp(
 			target_pivot.rotation_degrees.x,
@@ -172,7 +179,7 @@ func _process(delta: float) -> void:
 		)
 		target_pivot.rotation_degrees.y = lerp(
 			target_pivot.rotation_degrees.y,
-			clampf(body.cam_angle_diff, -90.0, 90.0),
+			clampf(locomotion_animator.cam_angle_diff, -90.0, 90.0),
 			t
 		)
 		# Same pitch value, same damping - just never touch .y, so this pivot's
