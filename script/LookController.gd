@@ -73,12 +73,10 @@ extends Node3D
 
 var yaw: float = 0.0
 var pitch: float = 0.0
-## Resolved from body's children at _ready() - not its own @export, since a
-## Node-typed @export needs a node_paths=PackedStringArray(...) header in
-## the .tscn or it silently resolves to null. cam_angle_diff lives on
-## LocomotionAnimator now, not directly on Player/body - see that script's
-## doc comment.
-var locomotion_animator: Node
+## Signed angle (deg) from body-forward to camera-forward - the single
+## place this is computed. LocomotionAnimator/TurnInPlaceController read
+## this value instead of computing their own copy.
+var cam_angle_diff: float = 0.0
 
 
 func _ready() -> void:
@@ -100,7 +98,6 @@ func _ready() -> void:
 		pitch_pivot.rotation_degrees = Vector3.ZERO
 	if body:
 		yaw = body.rotation.y
-		locomotion_animator = body.get_node_or_null("LocomotionAnimator")
 	# Connected in code rather than in the editor so this handler runs AFTER
 	# BoneAttachment3D's own skeleton_updated handler: by the time we overwrite
 	# the camera's basis, its parent has already been placed on the final solved
@@ -160,11 +157,11 @@ func _process(delta: float) -> void:
 	if body:
 		var forward_direction: Vector3 = body.global_transform.basis.z.normalized()
 		var cam_direction: Vector3 = Vector3.BACK.rotated(Vector3.UP, yaw)
-		var neck_diff_deg := rad_to_deg(forward_direction.signed_angle_to(cam_direction, Vector3.UP))
-		if neck_diff_deg > neck_clamp_positive_deg:
-			yaw -= deg_to_rad(neck_diff_deg - (neck_clamp_positive_deg + neck_fire_margin_deg))
-		elif neck_diff_deg < neck_clamp_negative_deg:
-			yaw -= deg_to_rad(neck_diff_deg - (neck_clamp_negative_deg - neck_fire_margin_deg))
+		cam_angle_diff = rad_to_deg(forward_direction.signed_angle_to(cam_direction, Vector3.UP))
+		if cam_angle_diff > neck_clamp_positive_deg:
+			yaw -= deg_to_rad(cam_angle_diff - (neck_clamp_positive_deg + neck_fire_margin_deg))
+		elif cam_angle_diff < neck_clamp_negative_deg:
+			yaw -= deg_to_rad(cam_angle_diff - (neck_clamp_negative_deg - neck_fire_margin_deg))
 
 	# Player.gd still reads this node's yaw via look_controller.global_transform
 	# .basis.get_euler().y for movement direction, body rotation and
@@ -175,7 +172,7 @@ func _process(delta: float) -> void:
 	# Drive the aim gimbal. The body (and the weapon, whose IK targets hang off
 	# TargetPivot) still follows this through SpineCCDIK3D - only the camera has
 	# stopped taking its rotation from the result.
-	if target_pivot and body and locomotion_animator:
+	if target_pivot and body:
 		var t := 1.0 - exp(-aim_damping * delta)
 		target_pivot.rotation_degrees.x = lerp(
 			target_pivot.rotation_degrees.x,
@@ -184,7 +181,7 @@ func _process(delta: float) -> void:
 		)
 		target_pivot.rotation_degrees.y = lerp(
 			target_pivot.rotation_degrees.y,
-			clampf(locomotion_animator.cam_angle_diff, -90.0, 90.0),
+			clampf(cam_angle_diff, -90.0, 90.0),
 			t
 		)
 		# Same pitch value, same damping - just never touch .y, so this pivot's

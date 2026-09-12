@@ -29,10 +29,7 @@ var strafe_acceleration = 3 # Controls how quickly currentspeed reaches targetsp
 var targetspeed # Desired animation blend space values we're accelerating toward based on player input direction
 var strafe_input: Vector2 = Vector2.ZERO # Normalized player input (-1 to 1 on each axis); fed into animation tree after camera rotation
 
-## Turn In Place. cam_angle_diff lives here (not on Player.gd) - LookController.gd
-## reads it via body.get_node("LocomotionAnimator").cam_angle_diff for its
-## neck-turn clamp. Don't rename/relocate this without updating that too.
-var cam_angle_diff = float() # Angle between body facing and camera direction
+## Turn In Place.
 var tip := TurnInPlaceController.new()
 
 
@@ -68,7 +65,14 @@ func _process(delta: float) -> void:
 	tip.update_active_state(animation_tree, player.direction)
 	handle_strafe_animation(delta)
 	handle_gait(delta)
-	tip.handle_trigger(animation_tree, cam_angle_diff, player.direction)
+	if player.look_controller:
+		tip.handle_trigger(
+			animation_tree,
+			player.look_controller.cam_angle_diff,
+			player.look_controller.neck_clamp_positive_deg,
+			player.look_controller.neck_clamp_negative_deg,
+			player.direction
+		)
 	tip.update_body_rotation(player, animation_tree)
 
 
@@ -95,10 +99,4 @@ func handle_strafe_animation(delta):
 
 
 func _physics_process(delta: float) -> void:
-	# process_priority = 200 (vs Player.gd's 100) guarantees this runs after
-	# Player's own _physics_process has updated direction/rotation for this
-	# tick, so compute_cam_angle() below reads this tick's body facing, not
-	# last tick's.
 	tip.update_timer(delta, player.direction != Vector3.ZERO)
-	if player.look_controller:
-		cam_angle_diff = tip.compute_cam_angle(player, player.look_controller)

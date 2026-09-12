@@ -3,11 +3,11 @@
 [ext_resource type="Script" uid="uid://bw5t1ifxqximo" path="res://script/Player.gd" id="1_kisug"]
 [ext_resource type="AnimationLibrary" uid="uid://dq0g34vjontmo" path="res://AnimLib/UUS.tres" id="3_bxj48"]
 [ext_resource type="AnimationLibrary" uid="uid://tn3wynrwt1h" path="res://AnimLib/Global.tres" id="3_keies"]
-[ext_resource type="Script" uid="uid://b3bgscwjhnpdx" path="res://script/NewTPSCamera.gd" id="3_kisug"]
+
 [ext_resource type="Script" uid="uid://yhx62btur56w" path="res://script/LookController.gd" id="4_fwxjn"]
 [ext_resource type="AnimationNodeBlendTree" uid="uid://bx5136pdcbqk7" path="res://AnimationTree/Strafe_controller_with_tip.tres" id="4_npir4"]
 [ext_resource type="Script" uid="uid://bqlbyqiahbjd3" path="res://script/DebugViewToggle.gd" id="5_7l5dv"]
-[ext_resource type="Script" uid="uid://byolxvqw3b1jq" path="res://script/DebugViewFront.gd" id="6_b304x"]
+
 [ext_resource type="Script" uid="uid://cpex3selsh5n4" path="res://script/HoldStateController.gd" id="7_hsc"]
 [ext_resource type="Script" uid="uid://u6447w4jg2ka" path="res://script/LocomotionAnimator.gd" id="8_lca"]
 
@@ -1365,31 +1365,6 @@ visible = false
 [node name="SpineTargetPitchOnly" type="Node3D" parent="PitchPivot" unique_id=1955010102]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.905, 0.12881571)
 
-[node name="Camera" type="Node3D" parent="." unique_id=1128461294 node_paths=PackedStringArray("target_pivot", "camera_target", "follow_target", "spring_arm")]
-process_mode = 3
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.68908, 0)
-visible = false
-script = ExtResource("3_kisug")
-target_pivot = NodePath("../TargetPivot")
-camera_target = NodePath("CameraTarget")
-follow_target = NodePath("..")
-spring_arm = NodePath("CameraTarget/SpringArm3D")
-
-[node name="CameraTarget" type="Node3D" parent="Camera" unique_id=378160313]
-
-[node name="SpringArm3D" type="SpringArm3D" parent="Camera/CameraTarget" unique_id=238699392]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.665, 0.245, 0)
-shape = SubResource("SphereShape3D_tigne")
-
-[node name="Camera3D" type="Camera3D" parent="Camera/CameraTarget/SpringArm3D" unique_id=485105421]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, -3)
-fov = 60.0
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Camera/CameraTarget/SpringArm3D/Camera3D" unique_id=1331338190]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -3.595)
-material_override = SubResource("StandardMaterial3D_b8r4c")
-cast_shadow = 0
-mesh = SubResource("SphereMesh_xwdqq")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1817238754]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)

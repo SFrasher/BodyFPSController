@@ -47,33 +47,20 @@ func update_timer(delta: float, has_input: bool) -> void:
 		tip_timer += delta
 
 
-## Angle between body facing and camera direction. Player.gd stores the
-## result in its own cam_angle_diff (read externally by LookController.gd),
-## so this returns the value rather than owning it. Caller is expected to
-## guard on look_controller being non-null, matching the original
-## angle_rotation()'s behavior of leaving the previous value untouched when
-## there's no look_controller.
-func compute_cam_angle(player: Node3D, look_controller: Node3D) -> float:
-	var camera_rotation := look_controller.global_transform.basis.get_euler().y
-	var cam_direction := Vector3.BACK.rotated(Vector3.UP, camera_rotation)
-	var forward_direction := player.global_transform.basis.z.normalized()
-	return rad_to_deg(forward_direction.signed_angle_to(cam_direction, Vector3.UP))
-
-
 ## Call once per _process, before handle_trigger()/update_body_rotation().
 func update_active_state(animation_tree: AnimationTree, direction: Vector3) -> void:
 	turn_in_place = animation_tree.get("parameters/TIP/active") and !(direction != Vector3.ZERO)
 
 
-func handle_trigger(animation_tree: AnimationTree, cam_angle_diff: float, direction: Vector3) -> void:
+func handle_trigger(animation_tree: AnimationTree, cam_angle_diff: float, fire_positive_deg: float, fire_negative_deg: float, direction: Vector3) -> void:
 	if direction != Vector3.ZERO:
 		animation_tree.set("parameters/TIP/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
 	else:
 		if tip_timer > tip_cool_down and not turn_in_place:
-			if cam_angle_diff >= 60:
+			if cam_angle_diff >= fire_positive_deg:
 				animation_tree.set("parameters/TIP Transition/transition_request", "left")
 				animation_tree.set("parameters/TIP/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
-			elif cam_angle_diff <= -70:
+			elif cam_angle_diff <= fire_negative_deg:
 				animation_tree.set("parameters/TIP Transition/transition_request", "right")
 				animation_tree.set("parameters/TIP/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 
