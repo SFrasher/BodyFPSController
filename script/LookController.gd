@@ -28,9 +28,10 @@ extends Node3D
 ## the full yaw-tracking target's torso-twist-vs-facing-direction fight.
 @export var pitch_pivot: Marker3D
 ## Dedicated pitch-only gimbal for the third-person debug cameras
-## (DebugView/DebugViewFront). Same pattern as pitch_pivot above but with no
-## weapon-aim offset and no coupling to the spine-aim/weapon systems - this
-## node exists for nothing except giving the debug cameras vertical movement.
+## (debug_back_view/debug_front_view). Same pattern as pitch_pivot above but
+## with no weapon-aim offset and no coupling to the spine-aim/weapon systems -
+## this node exists for nothing except giving the debug cameras vertical
+## movement.
 @export var debug_camera_gimbal: Node3D
 @export var body: Node3D
 
@@ -44,6 +45,12 @@ extends Node3D
 ## default -Z, so the camera needs a half turn to face the direction Player.gd
 ## assumes (see angle_rotation()'s use of Vector3.BACK).
 @export var camera_yaw_offset: float = PI
+
+@export_group("Debug Cameras")
+## Third-person back-chase debug view. Not gameplay - lets us watch the body
+## from outside. V cycles camera <-> debug_back_view <-> debug_front_view.
+@export var debug_back_view: Camera3D
+@export var debug_front_view: Camera3D
 
 @export_group("Look Parameters")
 @export var pitch_max: float = 80.0
@@ -98,6 +105,8 @@ func _ready() -> void:
 		pitch_pivot.rotation_degrees = Vector3.ZERO
 	if body:
 		yaw = body.rotation.y
+	if debug_back_view:
+		debug_back_view.current = false
 	# Connected in code rather than in the editor so this handler runs AFTER
 	# BoneAttachment3D's own skeleton_updated handler: by the time we overwrite
 	# the camera's basis, its parent has already been placed on the final solved
@@ -131,6 +140,24 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		yaw -= event.relative.x * mouse_sensitivity
 		pitch += event.relative.y * mouse_sensitivity
+
+
+## V cycles: camera (FPS) -> debug_back_view -> debug_front_view -> camera.
+## Pure debug tooling, unrelated to look/aim - lives here now because it's
+## still just "which camera is active", the same domain as the rest of this
+## script.
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_V:
+		if debug_back_view and debug_back_view.current:
+			if debug_front_view:
+				debug_front_view.make_current()
+			elif camera:
+				camera.make_current()
+		elif debug_front_view and debug_front_view.current:
+			if camera:
+				camera.make_current()
+		elif debug_back_view:
+			debug_back_view.make_current()
 
 
 func _process(delta: float) -> void:
@@ -194,10 +221,9 @@ func _process(delta: float) -> void:
 				t
 			)
 
-	# Third-person debug camera gimbal (DebugView/DebugViewFront). Pitch only,
-	# no weapon-aim offset, and deliberately not gated on
-	# target_pivot/body/locomotion_animator above - this has nothing to do
-	# with aiming, it's purely a camera-follow pivot.
+	# Third-person debug camera gimbal (debug_back_view/debug_front_view).
+	# Pitch only, no weapon-aim offset - this has nothing to do with aiming,
+	# it's purely a camera-follow pivot.
 	if debug_camera_gimbal:
 		var dt := 1.0 - exp(-aim_damping * delta)
 		debug_camera_gimbal.rotation_degrees.x = lerp(
