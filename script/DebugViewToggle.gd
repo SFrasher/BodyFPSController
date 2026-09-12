@@ -5,42 +5,20 @@ extends Camera3D
 ## keypress - two nodes each independently toggling on the same key would
 ## double-cycle.
 ##
-## Reads the FPS camera's own FINAL transform each frame -- after
-## LookController.gd has already written this frame's look rotation onto it -- and
-## parks a simple chase-cam offset behind and above it, then looks at the eye
-## point. Because it derives the view direction from that already-solved
-## transform it inherits the exact look direction with no yaw/pitch
-## convention guessing of its own. Purely additive: reads fps_view every
-## frame, never writes to it or to anything Player.gd/LookController.gd depend on,
-## except toggling which camera is `current` on V.
-##
-## Deliberately not built on NewTPSCamera.gd/Camera -- that node handles its
-## own look input and would double-count against LookController's look state.
-## This is a lightweight, read-only observer, not a second controller.
+## Position/rotation: plain child of Player, fixed transform set once in
+## the editor viewport. Player only ever rotates on yaw (turning to face
+## movement/look direction, including turn-in-place), so a static child of
+## it already swings correctly with body turns - no script needed for that,
+## same as any other child node in this scene. This camera only exists to
+## watch the character's body from outside; it was never meant to track
+## exact look pitch, so it doesn't try to.
 
 @export var fps_view: Camera3D
 @export var front_view: Camera3D
-@export var distance: float = 3.0
-@export var height: float = 0.35
 
 
 func _ready() -> void:
-	top_level = true
 	current = false
-
-
-func _process(_delta: float) -> void:
-	if fps_view == null:
-		return
-
-	var eye_transform := fps_view.global_transform
-	var eye_pos := eye_transform.origin
-	# Camera3D looks down -Z, so basis.z (+Z) points back out of the screen --
-	# exactly "behind" the eye point.
-	var chase_pos := eye_pos + eye_transform.basis.z * distance + Vector3.UP * height
-
-	global_position = chase_pos
-	look_at(eye_pos, Vector3.UP)
 
 
 func _unhandled_input(event: InputEvent) -> void:

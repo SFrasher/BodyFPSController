@@ -1395,23 +1395,27 @@ mesh = SubResource("SphereMesh_xwdqq")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_g3qns")
 
-[node name="LookController" type="Node3D" parent="." unique_id=1998510334 node_paths=PackedStringArray("target_pivot", "pitch_pivot", "body", "skeleton", "camera")]
+[node name="LookController" type="Node3D" parent="." unique_id=1998510334 node_paths=PackedStringArray("target_pivot", "pitch_pivot", "debug_camera_gimbal", "body", "skeleton", "camera")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.62, 0.21820015)
 script = ExtResource("4_fwxjn")
 target_pivot = NodePath("../TargetPivot")
 pitch_pivot = NodePath("../PitchPivot")
+debug_camera_gimbal = NodePath("../DebugCameraGimbal")
 body = NodePath("..")
 skeleton = NodePath("../Model/GeneralSkeleton")
 camera = NodePath("../Model/GeneralSkeleton/HeadBoneAttachment3D/Camera3D")
 
-[node name="DebugView" type="Camera3D" parent="." unique_id=631809991 node_paths=PackedStringArray("fps_view", "front_view")]
+[node name="DebugCameraGimbal" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, 0)
+
+[node name="DebugView" type="Camera3D" parent="DebugCameraGimbal" unique_id=631809991 node_paths=PackedStringArray("fps_view", "front_view")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, -3)
 script = ExtResource("5_7l5dv")
-fps_view = NodePath("../Model/GeneralSkeleton/HeadBoneAttachment3D/Camera3D")
+fps_view = NodePath("../../Model/GeneralSkeleton/HeadBoneAttachment3D/Camera3D")
 front_view = NodePath("../DebugViewFront")
 
-[node name="DebugViewFront" type="Camera3D" parent="." unique_id=70977601 node_paths=PackedStringArray("fps_view")]
-script = ExtResource("6_b304x")
-fps_view = NodePath("../Model/GeneralSkeleton/HeadBoneAttachment3D/Camera3D")
+[node name="DebugViewFront" type="Camera3D" parent="DebugCameraGimbal" unique_id=70977601]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3)
 
 [node name="HoldStateController" type="Node" parent="." unique_id=837465219]
 script = ExtResource("7_hsc")

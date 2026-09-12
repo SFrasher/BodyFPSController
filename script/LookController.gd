@@ -27,6 +27,11 @@ extends Node3D
 ## looking up/down still bends the torso the way it does when armed, without
 ## the full yaw-tracking target's torso-twist-vs-facing-direction fight.
 @export var pitch_pivot: Marker3D
+## Dedicated pitch-only gimbal for the third-person debug cameras
+## (DebugView/DebugViewFront). Same pattern as pitch_pivot above but with no
+## weapon-aim offset and no coupling to the spine-aim/weapon systems - this
+## node exists for nothing except giving the debug cameras vertical movement.
+@export var debug_camera_gimbal: Node3D
 @export var body: Node3D
 
 @export_group("Camera")
@@ -191,6 +196,18 @@ func _process(delta: float) -> void:
 				rad_to_deg(pitch) + target_pivot_x_offset,
 				t
 			)
+
+	# Third-person debug camera gimbal (DebugView/DebugViewFront). Pitch only,
+	# no weapon-aim offset, and deliberately not gated on
+	# target_pivot/body/locomotion_animator above - this has nothing to do
+	# with aiming, it's purely a camera-follow pivot.
+	if debug_camera_gimbal:
+		var dt := 1.0 - exp(-aim_damping * delta)
+		debug_camera_gimbal.rotation_degrees.x = lerp(
+			debug_camera_gimbal.rotation_degrees.x,
+			rad_to_deg(pitch),
+			dt
+		)
 
 
 func _on_skeleton_updated() -> void:
