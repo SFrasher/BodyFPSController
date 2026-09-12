@@ -8,8 +8,9 @@
 [ext_resource type="AnimationNodeBlendTree" uid="uid://bx5136pdcbqk7" path="res://AnimationTree/Strafe_controller_with_tip.tres" id="4_npir4"]
 [ext_resource type="Script" uid="uid://bqlbyqiahbjd3" path="res://script/DebugViewToggle.gd" id="5_7l5dv"]
 
-[ext_resource type="Script" uid="uid://cpex3selsh5n4" path="res://script/HoldStateController.gd" id="7_hsc"]
-[ext_resource type="Script" uid="uid://u6447w4jg2ka" path="res://script/LocomotionAnimator.gd" id="8_lca"]
+
+[ext_resource type="Script" uid="uid://b0g2hseux1ap0" path="res://script/CharacterAnimator.gd" id="8_lca"]
+[ext_resource type="Script" uid="uid://nxvrjoxxuc4s" path="res://script/CharacterRigger.gd" id="9_crg"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xm0pn"]
 resource_name = "M_AnimMan_Default"
@@ -1392,9 +1393,10 @@ front_view = NodePath("../DebugViewFront")
 [node name="DebugViewFront" type="Camera3D" parent="DebugCameraGimbal" unique_id=70977601]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3)
 
-[node name="HoldStateController" type="Node" parent="." unique_id=837465219]
-script = ExtResource("7_hsc")
 
-[node name="LocomotionAnimator" type="Node" parent="." unique_id=314159265]
+[node name="CharacterAnimator" type="Node" parent="." unique_id=314159265]
 script = ExtResource("8_lca")
+
+[node name="CharacterRigger" type="Node" parent="." unique_id=837465220]
+script = ExtResource("9_crg")
 
