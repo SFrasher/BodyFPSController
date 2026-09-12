@@ -1,15 +1,25 @@
 class_name CharacterRigger
 extends Node
 
-## Configures the character's rig for the current equipment/hold state:
-## gates the weapon IK/copy-transform modifiers, switches the spine aim
-## target, sets the finger-grip blend, and shows/hides the gun mesh.
-## Sits alongside CharacterAnimator - that script decides the animated
-## pose, this one configures what the rig does with it afterward.
+## Configures the character's rig for the current hold state: gates the
+## weapon IK/copy-transform modifiers, switches the spine aim target, sets
+## the finger-grip blend, and shows/hides the gun mesh. Sits alongside
+## CharacterAnimator - that script decides the animated pose, this one
+## configures what the rig does with it afterward.
+##
+## current_hold_state is the one real active slot - anything can reassign
+## it and call apply_state(), including a future equip system. Until that
+## exists, debug_cycle_states is a growable, inspector-editable list the
+## B-key test toggle cycles through - add a new .tres hold state to that
+## list and it's testable, no code changes needed.
 
-@export var armed_state: HoldStateConfig = preload("res://HoldStates/armed_state.tres")
-@export var unarmed_state: HoldStateConfig = preload("res://HoldStates/unarmed_state.tres")
-@export var current_hold_state: HoldStateConfig
+@export var current_hold_state: HoldStateConfig = preload("res://HoldStates/unarmed_state.tres")
+
+@export var debug_cycle_states: Array[HoldStateConfig] = [
+	preload("res://HoldStates/unarmed_state.tres"),
+	preload("res://HoldStates/armed_state.tres"),
+]
+var debug_cycle_index: int = 0
 
 var animation_tree: AnimationTree
 
@@ -22,7 +32,6 @@ var spine_ccdik_mod: CCDIK3D
 var spine_copy_mod: CopyTransformModifier3D
 var spine_twist_mod: BoneTwistDisperser3D
 
-
 func _ready() -> void:
 	var player := get_parent()
 	animation_tree = player.animation_tree
@@ -34,17 +43,15 @@ func _ready() -> void:
 	spine_ccdik_mod = player.get_node_or_null("Model/GeneralSkeleton/SpineCCDIK3D")
 	spine_copy_mod = player.get_node_or_null("Model/GeneralSkeleton/SpineCopyTransformModifier3D")
 	spine_twist_mod = player.get_node_or_null("Model/GeneralSkeleton/SpineBoneTwistDisperser3D")
-	var initial_state := current_hold_state if current_hold_state else unarmed_state
-	apply_state(initial_state)
-	current_hold_state = initial_state
-
+	apply_state(current_hold_state)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_B:
-		var next_state := unarmed_state if current_hold_state == armed_state else armed_state
-		apply_state(next_state)
-		current_hold_state = next_state
-
+		if debug_cycle_states.is_empty():
+			return
+		debug_cycle_index = (debug_cycle_index + 1) % debug_cycle_states.size()
+		current_hold_state = debug_cycle_states[debug_cycle_index]
+		apply_state(current_hold_state)
 
 func apply_state(state: HoldStateConfig) -> void:
 	if state == null:
