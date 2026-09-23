@@ -9,23 +9,16 @@ var input_dir: Vector2 # Stores WASD input (-1 to 1 on each axis)
 var direction: Vector3 # Stores player direction
 
 ## Motion
-var root_velocity = Vector3() # Stores velocity from anim root motion
-@export var root_motion_speed_multiplier: float = 1.0 # Modify anim speed
+@export var move_speed: float = 1.32 # Code-driven movement speed, m/s (matches walk loop clip's average net speed)
 
 ## Camera
 @export var turn_speed: float = 8.0 # Modify body rotation toward camera during movement
 var camera_rotation: float = 0.0 # Camera's yaw angle in radians; used to rotate input direction to camera-relative coordinates
 
-func _ready() -> void: 
-	process_priority = 100 #Makes this script's _process() run after AnimationTree's, so it reads this frame's root motion instead of last frame's.
-
-func _process(delta: float) -> void:
-	root_motion(delta, true) # calls root_motion() every frame, after AnimationTree updates to read this frame's motion.
-
 func _physics_process(delta: float) -> void:
 	_handle_input_direction(delta)
 	_handle_rotation(delta)
-	velocity = Vector3(root_velocity.x, velocity.y, root_velocity.z)
+	velocity = Vector3(direction.x * move_speed, velocity.y, direction.z * move_speed)
 	move_and_slide()
 
 func _handle_input_direction(_delta: float): 
@@ -42,14 +35,3 @@ func _handle_rotation(delta):
 
 	if direction != Vector3.ZERO:
 		rotation.y = lerp_angle(rotation.y, camera_rotation, delta * turn_speed)
-
-func root_motion(delta, enabled: bool):
-	if !enabled:
-		return
-
-	#root motion code
-	var root_pos = animation_tree.get_root_motion_position()
-	var current_rotation = (animation_tree.get_root_motion_rotation_accumulator().inverse() * get_quaternion())
-	root_velocity = current_rotation * root_pos / delta * root_motion_speed_multiplier
-	var root_rotation =  animation_tree.get_root_motion_rotation() *2.0
-	set_quaternion(get_quaternion() * root_rotation)
