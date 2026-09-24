@@ -18,15 +18,17 @@ var targetspeed
 var strafe_input: Vector2 = Vector2.ZERO
 
 # Turn in place
+@export var tip_turn_angle_deg: float = 90.0 # Fixed turn amount - measured off the wired clips' own Hips rotation (stopgap until Root-motion rotation is added to the retargeting pipeline)
+@export var tip_turn_rate_deg_s: float = 33.0 # Code-driven turn rate while TIP plays (placeholder, tune to feel)
 var tip_cool_down: float = 0.5
 var tip_timer: float = 0.0
 var turn_in_place: bool = false
 var tip_skeleton: Skeleton3D
 var tip_hips_idx: int = -1
-var tip_prev_raw_hips_rot: Quaternion = Quaternion.IDENTITY
 var tip_frozen_hips_rot: Quaternion = Quaternion.IDENTITY
 var tip_was_active: bool = false
-var tip_was_tracking: bool = false
+var tip_turn_sign: float = 0.0
+var tip_target_rotation: float = 0.0
 
 
 func _ready() -> void:
@@ -63,7 +65,7 @@ func _process(delta: float) -> void:
 			player.look_controller.neck_clamp_negative_deg,
 			player.direction
 		)
-	update_body_rotation()
+	update_body_rotation(delta)
 
 
 func handle_gait(delta):
@@ -101,37 +103,26 @@ func handle_trigger(cam_angle_diff: float, fire_positive_deg: float, fire_negati
 	else:
 		if tip_timer > tip_cool_down and not turn_in_place:
 			if cam_angle_diff >= fire_positive_deg:
+				tip_turn_sign = 1.0
 				animation_tree.set("parameters/TIP Transition/transition_request", "left")
 				animation_tree.set("parameters/TIP/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 			elif cam_angle_diff <= fire_negative_deg:
+				tip_turn_sign = -1.0
 				animation_tree.set("parameters/TIP Transition/transition_request", "right")
 				animation_tree.set("parameters/TIP/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 
 
-func update_body_rotation() -> void:
+func update_body_rotation(delta: float) -> void:
 	if tip_hips_idx < 0 or tip_skeleton == null:
 		return
 	var tip_active: bool = animation_tree.get("parameters/TIP/active")
 	if tip_active:
-		var current_raw := tip_skeleton.get_bone_pose_rotation(tip_hips_idx)
 		if not tip_was_active:
-			tip_frozen_hips_rot = current_raw
-			tip_prev_raw_hips_rot = current_raw
-			tip_was_tracking = false
+			tip_frozen_hips_rot = tip_skeleton.get_bone_pose_rotation(tip_hips_idx)
+			tip_target_rotation = player.rotation.y + deg_to_rad(tip_turn_angle_deg) * tip_turn_sign
 		else:
-			var fade_in_remaining: float = animation_tree.get("parameters/TIP/fade_in_remaining")
-			var fade_out_remaining: float = animation_tree.get("parameters/TIP/fade_out_remaining")
-			var at_full_weight: bool = fade_in_remaining <= 0.0 and fade_out_remaining <= 0.0
-			if at_full_weight:
-				if tip_was_tracking:
-					var delta_rot: Quaternion = tip_prev_raw_hips_rot.inverse() * current_raw
-					var twist_axis := Vector3(delta_rot.x, delta_rot.y, delta_rot.z).project(Vector3.UP)
-					var twist := Quaternion(twist_axis.x, twist_axis.y, twist_axis.z, delta_rot.w).normalized()
-					player.rotation.y += 2.0 * atan2(twist.y, twist.w)
-				tip_prev_raw_hips_rot = current_raw
-				tip_was_tracking = true
+			player.rotation.y = move_toward(player.rotation.y, tip_target_rotation, deg_to_rad(tip_turn_rate_deg_s) * delta)
 		tip_skeleton.set_bone_pose_rotation(tip_hips_idx, tip_frozen_hips_rot)
 		tip_was_active = true
 	else:
 		tip_was_active = false
-		tip_was_tracking = false
