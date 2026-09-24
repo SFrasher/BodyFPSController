@@ -1,3 +1,4 @@
+class_name LookController
 extends Node3D
 ## First-person look controller.
 ##

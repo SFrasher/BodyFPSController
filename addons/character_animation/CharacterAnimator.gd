@@ -1,5 +1,5 @@
 class_name CharacterAnimator
-extends Node
+extends Node3D
 
 ## Drives the character's animation: locomotion blending and turn-in-place.
 ## Sits alongside CharacterRigger, which configures the rig/equipment state
@@ -39,13 +39,13 @@ func _ready() -> void:
 	animation_tree.set("parameters/TIP TimeScale/scale", 1.4)
 	_register_uus_animation_library()
 
-	tip_skeleton = player.get_node_or_null("Model/GeneralSkeleton")
+	tip_skeleton = get_node_or_null("Model/GeneralSkeleton")
 	if tip_skeleton:
 		tip_hips_idx = tip_skeleton.find_bone("Hips")
 
 
 func _register_uus_animation_library() -> void:
-	var anim_player := player.get_node_or_null("AnimationPlayer") as AnimationPlayer
+	var anim_player := get_node_or_null("AnimationPlayer") as AnimationPlayer
 	if anim_player == null:
 		return
 	if anim_player.has_animation_library("UUS"):

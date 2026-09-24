@@ -36,14 +36,14 @@ var spine_twist_mod: BoneTwistDisperser3D
 
 func _ready() -> void:
 	var player := get_parent()
-	weapon_r_upper_arm_mod = player.get_node_or_null("Model/GeneralSkeleton/WeaponCopyTransformModifier3D")
-	weapon_r_hand_mod = player.get_node_or_null("Model/GeneralSkeleton/WeaponCopyTransformModifier3D2")
-	lh_weapon_ik_mod = player.get_node_or_null("Model/GeneralSkeleton/LHTwoBoneIK3D")
-	lh_weapon_copy_mod = player.get_node_or_null("Model/GeneralSkeleton/LHCopyTransformModifier3D2")
-	weapon_mesh_node = player.get_node_or_null("Model/GeneralSkeleton/RShoulderBoneAttachment3D2/WeaponHolder/Gun")
-	spine_ccdik_mod = player.get_node_or_null("Model/GeneralSkeleton/SpineCCDIK3D")
-	spine_copy_mod = player.get_node_or_null("Model/GeneralSkeleton/SpineCopyTransformModifier3D")
-	spine_twist_mod = player.get_node_or_null("Model/GeneralSkeleton/SpineBoneTwistDisperser3D")
+	weapon_r_upper_arm_mod = player.get_node_or_null("CharacterAnimator/Model/GeneralSkeleton/WeaponCopyTransformModifier3D")
+	weapon_r_hand_mod = player.get_node_or_null("CharacterAnimator/Model/GeneralSkeleton/WeaponCopyTransformModifier3D2")
+	lh_weapon_ik_mod = player.get_node_or_null("CharacterAnimator/Model/GeneralSkeleton/LHTwoBoneIK3D")
+	lh_weapon_copy_mod = player.get_node_or_null("CharacterAnimator/Model/GeneralSkeleton/LHCopyTransformModifier3D2")
+	weapon_mesh_node = player.get_node_or_null("CharacterAnimator/Model/GeneralSkeleton/RShoulderBoneAttachment3D2/WeaponHolder/Gun")
+	spine_ccdik_mod = player.get_node_or_null("CharacterAnimator/Model/GeneralSkeleton/SpineCCDIK3D")
+	spine_copy_mod = player.get_node_or_null("CharacterAnimator/Model/GeneralSkeleton/SpineCopyTransformModifier3D")
+	spine_twist_mod = player.get_node_or_null("CharacterAnimator/Model/GeneralSkeleton/SpineBoneTwistDisperser3D")
 	if current_hold_state and current_hold_state.has_method("apply"):
 		current_hold_state.apply(self)
 
