@@ -23,7 +23,7 @@ extends Node
 ]
 var debug_cycle_index: int = 0
 
-var animation_tree: AnimationTree
+@export var animation_tree: AnimationTree
 
 var weapon_r_upper_arm_mod: CopyTransformModifier3D
 var weapon_r_hand_mod: CopyTransformModifier3D
@@ -36,7 +36,6 @@ var spine_twist_mod: BoneTwistDisperser3D
 
 func _ready() -> void:
 	var player := get_parent()
-	animation_tree = player.animation_tree
 	weapon_r_upper_arm_mod = player.get_node_or_null("Model/GeneralSkeleton/WeaponCopyTransformModifier3D")
 	weapon_r_hand_mod = player.get_node_or_null("Model/GeneralSkeleton/WeaponCopyTransformModifier3D2")
 	lh_weapon_ik_mod = player.get_node_or_null("Model/GeneralSkeleton/LHTwoBoneIK3D")

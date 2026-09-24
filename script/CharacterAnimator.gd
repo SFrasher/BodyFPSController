@@ -8,7 +8,9 @@ extends Node
 @export var gait_blend_speed: float = 6.0
 
 var player: CharacterBody3D
-var animation_tree: AnimationTree
+@export var animation_tree: AnimationTree
+@export var look_controller: Node3D
+@export var movement: CharacterMovement
 
 # Locomotion
 var gait_blend: float = 0.0
@@ -33,7 +35,6 @@ var tip_target_rotation: float = 0.0
 
 func _ready() -> void:
 	player = get_parent()
-	animation_tree = player.animation_tree
 	process_priority = 200
 	animation_tree.set("parameters/TIP TimeScale/scale", 1.4)
 	_register_uus_animation_library()
@@ -55,15 +56,15 @@ func _register_uus_animation_library() -> void:
 
 
 func _process(delta: float) -> void:
-	update_active_state(player.direction)
+	update_active_state(movement.direction)
 	handle_strafe_animation(delta)
 	handle_gait(delta)
-	if player.look_controller:
+	if look_controller:
 		handle_trigger(
-			player.look_controller.cam_angle_diff,
-			player.look_controller.neck_clamp_positive_deg,
-			player.look_controller.neck_clamp_negative_deg,
-			player.direction
+			look_controller.cam_angle_diff,
+			look_controller.neck_clamp_positive_deg,
+			look_controller.neck_clamp_negative_deg,
+			movement.direction
 		)
 	update_body_rotation(delta)
 
@@ -75,7 +76,7 @@ func handle_gait(delta):
 
 
 func handle_strafe_animation(delta):
-	targetspeed = Vector2(player.input_dir.x, player.input_dir.y).normalized()
+	targetspeed = Vector2(movement.input_dir.x, movement.input_dir.y).normalized()
 	currentspeed = currentspeed.move_toward(-targetspeed, strafe_acceleration * delta)
 	strafe_input = Vector2(currentspeed.x, -currentspeed.y)
 	animation_tree.set("parameters/WALK/blend_position", strafe_input)
@@ -83,7 +84,7 @@ func handle_strafe_animation(delta):
 
 
 func _physics_process(delta: float) -> void:
-	update_timer(delta, player.direction != Vector3.ZERO)
+	update_timer(delta, movement.direction != Vector3.ZERO)
 
 
 func update_timer(delta: float, has_input: bool) -> void:
