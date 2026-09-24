@@ -1,6 +1,0 @@
-[gd_resource type="Resource" script_class="GunHoldState" format=3 uid="uid://dcjiqsbnbuvjh"]
-
-[ext_resource type="Script" uid="uid://bloe3v78bdu5d" path="res://HoldStates/GunHoldState.gd" id="1_eroqe"]
-
-[resource]
-script = ExtResource("1_eroqe")
