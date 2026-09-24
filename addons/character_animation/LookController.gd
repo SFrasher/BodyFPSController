@@ -21,7 +21,6 @@ extends Node3D
 ## The body still aims through the existing IK chain exactly as before - this
 ## node drives TargetPivot every frame, unchanged in intent.
 
-@export var target_pivot: Marker3D
 ## Second aim gimbal, pitch-only. Yaw is never written to it (stays at its
 ## scene-default 0, i.e. always pointing along the body's own forward) - used
 ## as the unarmed spine-aim target (see HoldStateConfig.spine_pitch_only) so
@@ -100,8 +99,6 @@ func _ready() -> void:
 	# no children, only its basis is ever read.
 	top_level = true
 	_capture_mouse()
-	if target_pivot:
-		target_pivot.rotation_degrees = Vector3.ZERO
 	if pitch_pivot:
 		pitch_pivot.rotation_degrees = Vector3.ZERO
 	if body:
@@ -197,30 +194,13 @@ func _process(delta: float) -> void:
 	# NewTPSCamera.gd's original convention.
 	rotation.y = yaw
 
-	# Drive the aim gimbal. The body (and the weapon, whose IK targets hang off
-	# TargetPivot) still follows this through SpineCCDIK3D - only the camera has
-	# stopped taking its rotation from the result.
-	if target_pivot and body:
+	if pitch_pivot:
 		var t := 1.0 - exp(-aim_damping * delta)
-		target_pivot.rotation_degrees.x = lerp(
-			target_pivot.rotation_degrees.x,
+		pitch_pivot.rotation_degrees.x = lerp(
+			pitch_pivot.rotation_degrees.x,
 			rad_to_deg(pitch) + target_pivot_x_offset,
 			t
 		)
-		target_pivot.rotation_degrees.y = lerp(
-			target_pivot.rotation_degrees.y,
-			clampf(cam_angle_diff, -90.0, 90.0),
-			t
-		)
-		# Same pitch value, same damping - just never touch .y, so this pivot's
-		# yaw stays locked to the body's own forward instead of tracking the
-		# camera's neck-turn.
-		if pitch_pivot:
-			pitch_pivot.rotation_degrees.x = lerp(
-				pitch_pivot.rotation_degrees.x,
-				rad_to_deg(pitch) + target_pivot_x_offset,
-				t
-			)
 
 	# Third-person debug camera gimbal (debug_back_view/debug_front_view).
 	# Pitch only, no weapon-aim offset - this has nothing to do with aiming,
