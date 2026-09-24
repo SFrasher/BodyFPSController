@@ -51,8 +51,13 @@ extends Node3D
 ## from outside. V cycles camera <-> debug_back_view <-> debug_front_view.
 @export var debug_back_view: Camera3D
 @export var debug_front_view: Camera3D
+@export var debug_view_key: Key = KEY_V
 
 @export_group("Look Parameters")
+@export var action_look_right: StringName = &"lookright"
+@export var action_look_left: StringName = &"lookleft"
+@export var action_look_down: StringName = &"lookdown"
+@export var action_look_up: StringName = &"lookup"
 @export var pitch_max: float = 80.0
 @export var pitch_min: float = -60.0
 @export var mouse_sensitivity: float = 0.002
@@ -145,7 +150,7 @@ func _input(event: InputEvent) -> void:
 ## still just "which camera is active", the same domain as the rest of this
 ## script.
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_V:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == debug_view_key:
 		if debug_back_view and debug_back_view.current:
 			if debug_front_view:
 				debug_front_view.make_current()
@@ -165,7 +170,7 @@ func _process(delta: float) -> void:
 	# 60 Hz physics rate made it a staircase that a per-frame solver chased,
 	# quantizing the view to the physics tick - the head would sit still for
 	# 2-3 frames above 60 fps and then jump.
-	var gamepad_input := Vector2(Input.get_axis("lookright", "lookleft"), -Input.get_axis("lookdown", "lookup"))
+	var gamepad_input := Vector2(Input.get_axis(action_look_right, action_look_left), -Input.get_axis(action_look_down, action_look_up))
 	if gamepad_input.length() > 0.1:
 		yaw += gamepad_input.x * gamepad_sensitivity * delta
 		pitch += gamepad_input.y * gamepad_sensitivity * delta

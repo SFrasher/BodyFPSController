@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://hd1dunt5q6bi" path="res://Exit.gd" id="1_g6lb6"]
 [ext_resource type="Texture2D" uid="uid://dxa8vrl6shfbp" path="res://Material/texture_03.png" id="2_g6lb6"]
-[ext_resource type="PackedScene" uid="uid://duqyi0pwucmxf" path="res://Node/Player.tscn" id="3_g6lb6"]
+[ext_resource type="PackedScene" uid="uid://dgoclcfylsxec" path="res://Node/player.tscn" id="3_g6lb6"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_e6xsc"]
 sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
@@ -44,4 +44,4 @@ collision_layer = 513
 collision_mask = 513
 size = Vector3(100, 0.1, 100)
 
-[node name="Player" parent="." unique_id=421281082 instance=ExtResource("3_g6lb6")]
+[node name="test" parent="." unique_id=603262368 instance=ExtResource("3_g6lb6")]

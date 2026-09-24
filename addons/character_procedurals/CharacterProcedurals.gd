@@ -15,24 +15,20 @@ extends Node3D
 
 @export var current_hold_state: Resource
 @export var debug_cycle_states: Array[Resource] = [null]
+@export var debug_cycle_key: Key = KEY_B
 var debug_cycle_index: int = 0
 
-@export var skeleton: Skeleton3D
-
-var spine_ccdik_mod: CCDIK3D
-var spine_copy_mod: CopyTransformModifier3D
-var spine_twist_mod: BoneTwistDisperser3D
+@export var spine_ccdik_mod: CCDIK3D
+@export var spine_copy_mod: CopyTransformModifier3D
+@export var spine_twist_mod: BoneTwistDisperser3D
+@export var spine_default_target: Node3D # Spine target restored when no hold state is equipped
 
 func _ready() -> void:
-	if skeleton:
-		spine_ccdik_mod = skeleton.get_node_or_null("SpineCCDIK3D")
-		spine_copy_mod = skeleton.get_node_or_null("SpineCopyTransformModifier3D")
-		spine_twist_mod = skeleton.get_node_or_null("SpineBoneTwistDisperser3D")
 	if current_hold_state and current_hold_state.has_method("apply"):
 		current_hold_state.apply(self)
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_B:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == debug_cycle_key:
 		if debug_cycle_states.is_empty():
 			return
 		debug_cycle_index = (debug_cycle_index + 1) % debug_cycle_states.size()
@@ -48,12 +44,13 @@ func equip(state: Resource) -> void:
 		reset_to_default()
 
 func reset_to_default() -> void:
-	var pitch_target := NodePath("../../../PitchPivot/SpineTargetPitchOnly")
 	if spine_ccdik_mod:
 		spine_ccdik_mod.active = true
-		spine_ccdik_mod.set("settings/0/target_node", pitch_target)
+		if spine_default_target:
+			spine_ccdik_mod.set("settings/0/target_node", spine_ccdik_mod.get_path_to(spine_default_target))
 	if spine_copy_mod:
 		spine_copy_mod.active = true
-		spine_copy_mod.set("settings/0/reference_node", pitch_target)
+		if spine_default_target:
+			spine_copy_mod.set("settings/0/reference_node", spine_copy_mod.get_path_to(spine_default_target))
 	if spine_twist_mod:
 		spine_twist_mod.active = true

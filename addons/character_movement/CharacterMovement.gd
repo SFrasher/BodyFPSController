@@ -4,6 +4,12 @@ extends CharacterBody3D
 ## Resources
 @export var facing_source: Node3D # Node whose global yaw sets direction and facing
 
+## Input
+@export var action_right: StringName = &"right"
+@export var action_left: StringName = &"left"
+@export var action_backward: StringName = &"backward"
+@export var action_forward: StringName = &"forward"
+
 ## Direction
 var input_dir: Vector2 # Stores WASD input (-1 to 1 on each axis)
 var direction: Vector3 # Stores player direction
@@ -22,7 +28,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 func _handle_input_direction(_delta: float):
-	input_dir = Input.get_vector("right", "left", "backward", "forward") # Reads WASD and returns Vector2
+	input_dir = Input.get_vector(action_right, action_left, action_backward, action_forward) # Reads WASD and returns Vector2
 	direction = Vector3(input_dir.x, 0, input_dir.y) # Converts the Vector2 into a Vector3 without a vertical axis.
 
 	if facing_source: # Checks that a facing source is wired before converting to facing rotated direction
